@@ -1,4 +1,4 @@
-const { Notification } = require('../domain/notification.ts');
+import { Notification } from '#notification-delivery/domain/notification.ts';
 import type { RecipientRepository, NotificationRepository } from './ports.ts';
 
 interface Deps {
@@ -23,7 +23,7 @@ interface AppError extends Error {
   code?: string;
 }
 
-function makeScheduleNotification({ recipientRepository, notificationRepository, generateId }: Deps) {
+export function makeScheduleNotification({ recipientRepository, notificationRepository, generateId }: Deps) {
   return async function scheduleNotification({
     recipientId,
     title,
@@ -49,5 +49,3 @@ function makeScheduleNotification({ recipientRepository, notificationRepository,
     return { notificationId: notification.id };
   };
 }
-
-module.exports = { makeScheduleNotification };

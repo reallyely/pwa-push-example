@@ -1,5 +1,5 @@
-const { STATUSES } = require('../domain/notification-status.ts');
-import type { LegacyNotificationEntry, LegacyScheduledEntry, NotificationRecord } from '../../../store.ts';
+import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
+import type { LegacyNotificationEntry, LegacyScheduledEntry, NotificationRecord } from '#store';
 
 interface MigrateArgs {
   legacyNotifications: LegacyNotificationEntry[];
@@ -10,7 +10,7 @@ interface MigrateArgs {
 // sends) + data/scheduled.json (scheduled sends) into the merged Notification
 // record shape. Called once by JsonNotificationRepository, only when
 // notification-records.json has never been written.
-function migrateLegacyNotificationFiles({ legacyNotifications, legacyScheduled }: MigrateArgs): NotificationRecord[] {
+export function migrateLegacyNotificationFiles({ legacyNotifications, legacyScheduled }: MigrateArgs): NotificationRecord[] {
   const records: NotificationRecord[] = [];
 
   for (const entry of legacyScheduled) {
@@ -73,5 +73,3 @@ function migrateLegacyNotificationFiles({ legacyNotifications, legacyScheduled }
 
   return records;
 }
-
-module.exports = { migrateLegacyNotificationFiles };

@@ -14,7 +14,7 @@ interface RecipientProps {
   pushSubscription?: PushSubscriptionJSON | null;
 }
 
-class Recipient {
+export class Recipient {
   username: string;
   pushSubscription: PushSubscriptionJSON | null;
 
@@ -43,6 +43,3 @@ class Recipient {
     this.pushSubscription = null;
   }
 }
-
-module.exports = { Recipient };
-export type { Recipient };

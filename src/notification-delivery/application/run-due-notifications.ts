@@ -16,7 +16,7 @@ interface RunDueNotificationsResponse {
   sent: number;
 }
 
-function makeRunDueNotifications({ notificationRepository, deliverNotification, now = () => new Date() }: Deps) {
+export function makeRunDueNotifications({ notificationRepository, deliverNotification, now = () => new Date() }: Deps) {
   return async function runDueNotifications(): Promise<RunDueNotificationsResponse> {
     const due = await notificationRepository.claimDueNotifications(now());
     let sent = 0;
@@ -27,5 +27,3 @@ function makeRunDueNotifications({ notificationRepository, deliverNotification, 
     return { checked: due.length, sent };
   };
 }
-
-module.exports = { makeRunDueNotifications };

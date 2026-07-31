@@ -1,27 +1,38 @@
-require('dotenv').config();
-const path = require('path');
-const express = require('express');
+import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import express from "express";
 
-const { JsonRecipientRepository } = require('./src/notification-delivery/infrastructure/json-recipient-repository.ts');
-const { JsonNotificationRepository } = require('./src/notification-delivery/infrastructure/json-notification-repository.ts');
-const { WebPushGateway } = require('./src/notification-delivery/infrastructure/web-push-gateway.ts');
+import { JsonRecipientRepository } from "#notification-delivery/infrastructure/json-recipient-repository.ts";
+import { JsonNotificationRepository } from "#notification-delivery/infrastructure/json-notification-repository.ts";
+import { WebPushGateway } from "#notification-delivery/infrastructure/web-push-gateway.ts";
 
-const { makeRegisterRecipient } = require('./src/notification-delivery/application/register-recipient.ts');
-const { makeSubscribeRecipient } = require('./src/notification-delivery/application/subscribe-recipient.ts');
-const { makeResubscribeRecipient } = require('./src/notification-delivery/application/resubscribe-recipient.ts');
-const { makeListRecipients } = require('./src/notification-delivery/application/list-recipients.ts');
-const { makeScheduleNotification } = require('./src/notification-delivery/application/schedule-notification.ts');
-const { makeCancelScheduledNotification } = require('./src/notification-delivery/application/cancel-scheduled-notification.ts');
-const { makeDeliverNotification } = require('./src/notification-delivery/application/deliver-notification.ts');
-const { makeRunDueNotifications } = require('./src/notification-delivery/application/run-due-notifications.ts');
-const { makeListNotifications } = require('./src/notification-delivery/application/list-notifications.ts');
+import { makeRegisterRecipient } from "#notification-delivery/application/register-recipient.ts";
+import { makeSubscribeRecipient } from "#notification-delivery/application/subscribe-recipient.ts";
+import { makeResubscribeRecipient } from "#notification-delivery/application/resubscribe-recipient.ts";
+import { makeListRecipients } from "#notification-delivery/application/list-recipients.ts";
+import { makeScheduleNotification } from "#notification-delivery/application/schedule-notification.ts";
+import { makeCancelScheduledNotification } from "#notification-delivery/application/cancel-scheduled-notification.ts";
+import { makeDeliverNotification } from "#notification-delivery/application/deliver-notification.ts";
+import { makeRunDueNotifications } from "#notification-delivery/application/run-due-notifications.ts";
+import { makeListNotifications } from "#notification-delivery/application/list-notifications.ts";
 
-const { makeHttpRoutes } = require('./src/notification-delivery/interface/http-routes.ts');
+import { makeHttpRoutes } from "#notification-delivery/interface/http-routes.ts";
 
-const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET, PORT = 3000 } = process.env;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const {
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY,
+  VAPID_SUBJECT,
+  CRON_SECRET,
+  PORT = 3000,
+} = process.env;
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) {
-  throw new Error('Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT env vars');
+  throw new Error(
+    "Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT env vars",
+  );
 }
 
 function generateId(): string {
@@ -43,31 +54,46 @@ const subscribeRecipient = makeSubscribeRecipient({ recipientRepository });
 const resubscribeRecipient = makeResubscribeRecipient({ recipientRepository });
 const listRecipients = makeListRecipients({ recipientRepository });
 
-const deliverNotification = makeDeliverNotification({ notificationRepository, recipientRepository, pushGateway });
-const scheduleNotification = makeScheduleNotification({ recipientRepository, notificationRepository, generateId });
-const cancelScheduledNotification = makeCancelScheduledNotification({ notificationRepository });
-const runDueNotifications = makeRunDueNotifications({ notificationRepository, deliverNotification });
+const deliverNotification = makeDeliverNotification({
+  notificationRepository,
+  recipientRepository,
+  pushGateway,
+});
+const scheduleNotification = makeScheduleNotification({
+  recipientRepository,
+  notificationRepository,
+  generateId,
+});
+const cancelScheduledNotification = makeCancelScheduledNotification({
+  notificationRepository,
+});
+const runDueNotifications = makeRunDueNotifications({
+  notificationRepository,
+  deliverNotification,
+});
 const listNotifications = makeListNotifications({ notificationRepository });
 
 // --- Interface ---
 const app = express();
 
-app.use('/', express.static(path.join(__dirname, 'public/client')));
-app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
+app.use("/", express.static(path.join(__dirname, "public/client")));
+app.use("/admin", express.static(path.join(__dirname, "public/admin")));
 
-app.use(makeHttpRoutes({
-  vapidPublicKey: VAPID_PUBLIC_KEY,
-  cronSecret: CRON_SECRET,
-  registerRecipient,
-  subscribeRecipient,
-  resubscribeRecipient,
-  listRecipients,
-  scheduleNotification,
-  cancelScheduledNotification,
-  deliverNotification,
-  runDueNotifications,
-  listNotifications,
-}));
+app.use(
+  makeHttpRoutes({
+    vapidPublicKey: VAPID_PUBLIC_KEY,
+    cronSecret: CRON_SECRET,
+    registerRecipient,
+    subscribeRecipient,
+    resubscribeRecipient,
+    listRecipients,
+    scheduleNotification,
+    cancelScheduledNotification,
+    deliverNotification,
+    runDueNotifications,
+    listNotifications,
+  }),
+);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

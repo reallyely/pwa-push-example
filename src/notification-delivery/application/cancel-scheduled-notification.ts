@@ -12,7 +12,7 @@ interface AppError extends Error {
   code?: string;
 }
 
-function makeCancelScheduledNotification({ notificationRepository }: Deps) {
+export function makeCancelScheduledNotification({ notificationRepository }: Deps) {
   return async function cancelScheduledNotification({ notificationId }: CancelScheduledNotificationRequest): Promise<void> {
     const notification = await notificationRepository.findById(notificationId);
     if (!notification) {
@@ -24,5 +24,3 @@ function makeCancelScheduledNotification({ notificationRepository }: Deps) {
     await notificationRepository.save(notification);
   };
 }
-
-module.exports = { makeCancelScheduledNotification };

@@ -1,4 +1,4 @@
-const { Recipient } = require('../domain/recipient.ts');
+import { Recipient } from '#notification-delivery/domain/recipient.ts';
 import type { RecipientRepository } from './ports.ts';
 
 interface Deps {
@@ -17,7 +17,7 @@ interface InputError extends Error {
   code?: string;
 }
 
-function makeRegisterRecipient({ recipientRepository }: Deps) {
+export function makeRegisterRecipient({ recipientRepository }: Deps) {
   return async function registerRecipient({ username }: RegisterRecipientRequest): Promise<RegisterRecipientResponse> {
     if (!username || typeof username !== 'string' || !username.trim()) {
       const err: InputError = new Error('username is required');
@@ -32,5 +32,3 @@ function makeRegisterRecipient({ recipientRepository }: Deps) {
     return { username: name };
   };
 }
-
-module.exports = { makeRegisterRecipient };

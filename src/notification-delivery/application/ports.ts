@@ -1,5 +1,5 @@
-import type { Recipient, PushSubscriptionJSON } from '../domain/recipient.ts';
-import type { Notification } from '../domain/notification.ts';
+import type { Recipient, PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
+import type { Notification } from '#notification-delivery/domain/notification.ts';
 
 export interface RecipientRepository {
   findByUsername(username: string): Promise<Recipient | null>;

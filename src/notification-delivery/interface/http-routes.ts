@@ -1,6 +1,6 @@
-const express = require('express');
-import type { Notification } from '../domain/notification.ts';
-import type { RecipientView } from '../application/list-recipients.ts';
+import express from 'express';
+import type { Notification } from '#notification-delivery/domain/notification.ts';
+import type { RecipientView } from '#notification-delivery/application/list-recipients.ts';
 
 interface AppError extends Error {
   code?: string;
@@ -71,7 +71,7 @@ function toNotificationView(notification: Notification) {
   };
 }
 
-function makeHttpRoutes({
+export function makeHttpRoutes({
   vapidPublicKey,
   cronSecret,
   registerRecipient,
@@ -208,5 +208,3 @@ function makeHttpRoutes({
 
   return router;
 }
-
-module.exports = { makeHttpRoutes };

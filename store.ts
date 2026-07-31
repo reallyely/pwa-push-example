@@ -1,6 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-import type { PushSubscriptionJSON } from './src/notification-delivery/domain/recipient.ts';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'users.json');
@@ -46,7 +49,7 @@ export interface NotificationRecord {
   failureReason: string | null;
 }
 
-function load(): Map<string, UserRecord> {
+export function load(): Map<string, UserRecord> {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(DATA_FILE)) {
     return new Map();
@@ -61,13 +64,13 @@ function load(): Map<string, UserRecord> {
   }
 }
 
-function save(users: Map<string, UserRecord>): void {
+export function save(users: Map<string, UserRecord>): void {
   const tmpFile = `${DATA_FILE}.tmp`;
   fs.writeFileSync(tmpFile, JSON.stringify(Array.from(users.entries()), null, 2));
   fs.renameSync(tmpFile, DATA_FILE);
 }
 
-function loadNotifications(): LegacyNotificationEntry[] {
+export function loadNotifications(): LegacyNotificationEntry[] {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(NOTIFICATIONS_FILE)) {
     return [];
@@ -81,13 +84,13 @@ function loadNotifications(): LegacyNotificationEntry[] {
   }
 }
 
-function saveNotifications(notifications: LegacyNotificationEntry[]): void {
+export function saveNotifications(notifications: LegacyNotificationEntry[]): void {
   const tmpFile = `${NOTIFICATIONS_FILE}.tmp`;
   fs.writeFileSync(tmpFile, JSON.stringify(notifications, null, 2));
   fs.renameSync(tmpFile, NOTIFICATIONS_FILE);
 }
 
-function loadScheduled(): LegacyScheduledEntry[] {
+export function loadScheduled(): LegacyScheduledEntry[] {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(SCHEDULED_FILE)) {
     return [];
@@ -101,7 +104,7 @@ function loadScheduled(): LegacyScheduledEntry[] {
   }
 }
 
-function saveScheduled(scheduled: LegacyScheduledEntry[]): void {
+export function saveScheduled(scheduled: LegacyScheduledEntry[]): void {
   const tmpFile = `${SCHEDULED_FILE}.tmp`;
   fs.writeFileSync(tmpFile, JSON.stringify(scheduled, null, 2));
   fs.renameSync(tmpFile, SCHEDULED_FILE);
@@ -110,7 +113,7 @@ function saveScheduled(scheduled: LegacyScheduledEntry[]): void {
 // Returns null (not []) when the file has never been written, so a caller
 // can distinguish "not yet migrated from the legacy notifications.json /
 // scheduled.json files" from "migrated, but currently empty".
-function loadNotificationRecords(): NotificationRecord[] | null {
+export function loadNotificationRecords(): NotificationRecord[] | null {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(NOTIFICATION_RECORDS_FILE)) {
     return null;
@@ -124,19 +127,9 @@ function loadNotificationRecords(): NotificationRecord[] | null {
   }
 }
 
-function saveNotificationRecords(records: NotificationRecord[]): void {
+export function saveNotificationRecords(records: NotificationRecord[]): void {
   const tmpFile = `${NOTIFICATION_RECORDS_FILE}.tmp`;
   fs.writeFileSync(tmpFile, JSON.stringify(records, null, 2));
   fs.renameSync(tmpFile, NOTIFICATION_RECORDS_FILE);
 }
 
-module.exports = {
-  load,
-  save,
-  loadNotifications,
-  saveNotifications,
-  loadScheduled,
-  saveScheduled,
-  loadNotificationRecords,
-  saveNotificationRecords,
-};

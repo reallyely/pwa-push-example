@@ -1,5 +1,5 @@
 import type { RecipientRepository } from './ports.ts';
-import type { PushSubscriptionJSON } from '../domain/recipient.ts';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
 
 interface Deps {
   recipientRepository: RecipientRepository;
@@ -14,7 +14,7 @@ interface AppError extends Error {
   code?: string;
 }
 
-function makeSubscribeRecipient({ recipientRepository }: Deps) {
+export function makeSubscribeRecipient({ recipientRepository }: Deps) {
   return async function subscribeRecipient({ username, subscription }: SubscribeRecipientRequest): Promise<void> {
     const recipient = await recipientRepository.findByUsername(username);
     if (!recipient) {
@@ -31,5 +31,3 @@ function makeSubscribeRecipient({ recipientRepository }: Deps) {
     await recipientRepository.save(recipient);
   };
 }
-
-module.exports = { makeSubscribeRecipient };

@@ -1,10 +1,10 @@
-const store = require('../../../store.ts');
-const { Notification } = require('../domain/notification.ts');
-const { STATUSES } = require('../domain/notification-status.ts');
-const { migrateLegacyNotificationFiles } = require('./migrate-legacy-notification-files.ts');
-import type { NotificationRecord } from '../../../store.ts';
-import type { NotificationRepository } from '../application/ports.ts';
-import type { Notification as NotificationEntity } from '../domain/notification.ts';
+import * as store from '#store';
+import { Notification } from '#notification-delivery/domain/notification.ts';
+import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
+import { migrateLegacyNotificationFiles } from './migrate-legacy-notification-files.ts';
+import type { NotificationRecord } from '#store';
+import type { NotificationRepository } from '#notification-delivery/application/ports.ts';
+import type { Notification as NotificationEntity } from '#notification-delivery/domain/notification.ts';
 
 function toEntity(record: NotificationRecord): NotificationEntity {
   return new Notification({
@@ -34,7 +34,7 @@ function toRecord(notification: NotificationEntity): NotificationRecord {
   };
 }
 
-class JsonNotificationRepository implements NotificationRepository {
+export class JsonNotificationRepository implements NotificationRepository {
   records: NotificationRecord[];
   // Ids claimed by claimDueNotifications() but not yet saved back with a
   // terminal status — closes the gap an overlapping tick could otherwise
@@ -94,5 +94,3 @@ class JsonNotificationRepository implements NotificationRepository {
     store.saveNotificationRecords(this.records);
   }
 }
-
-module.exports = { JsonNotificationRepository };

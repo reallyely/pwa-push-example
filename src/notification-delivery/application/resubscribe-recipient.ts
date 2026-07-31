@@ -1,5 +1,5 @@
 import type { RecipientRepository } from './ports.ts';
-import type { PushSubscriptionJSON } from '../domain/recipient.ts';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
 
 interface Deps {
   recipientRepository: RecipientRepository;
@@ -14,7 +14,7 @@ interface AppError extends Error {
   code?: string;
 }
 
-function makeResubscribeRecipient({ recipientRepository }: Deps) {
+export function makeResubscribeRecipient({ recipientRepository }: Deps) {
   return async function resubscribeRecipient({ oldEndpoint, subscription }: ResubscribeRecipientRequest): Promise<void> {
     if (!subscription || !subscription.endpoint) {
       const err: AppError = new Error('subscription is required');
@@ -31,5 +31,3 @@ function makeResubscribeRecipient({ recipientRepository }: Deps) {
     await recipientRepository.save(recipient);
   };
 }
-
-module.exports = { makeResubscribeRecipient };

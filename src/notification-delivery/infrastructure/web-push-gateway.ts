@@ -1,6 +1,6 @@
-const webpush = require('web-push');
-import type { PushGateway, PushGatewayResult } from '../application/ports.ts';
-import type { PushSubscriptionJSON } from '../domain/recipient.ts';
+import webpush from 'web-push';
+import type { PushGateway, PushGatewayResult } from '#notification-delivery/application/ports.ts';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
 
 interface WebPushConfig {
   vapidSubject: string;
@@ -12,7 +12,7 @@ interface WebPushError extends Error {
   statusCode?: number;
 }
 
-class WebPushGateway implements PushGateway {
+export class WebPushGateway implements PushGateway {
   constructor({ vapidSubject, vapidPublicKey, vapidPrivateKey }: WebPushConfig) {
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
   }
@@ -34,5 +34,3 @@ class WebPushGateway implements PushGateway {
     }
   }
 }
-
-module.exports = { WebPushGateway };

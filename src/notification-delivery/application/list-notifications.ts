@@ -1,6 +1,6 @@
-const { STATUSES } = require('../domain/notification-status.ts');
+import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
 import type { NotificationRepository } from './ports.ts';
-import type { Notification } from '../domain/notification.ts';
+import type { Notification } from '#notification-delivery/domain/notification.ts';
 
 interface Deps {
   notificationRepository: NotificationRepository;
@@ -10,7 +10,7 @@ interface ListNotificationsRequest {
   view: 'scheduled' | 'history';
 }
 
-function makeListNotifications({ notificationRepository }: Deps) {
+export function makeListNotifications({ notificationRepository }: Deps) {
   return async function listNotifications({ view }: ListNotificationsRequest): Promise<Notification[]> {
     const all = await notificationRepository.findAll();
     if (view === 'scheduled') {
@@ -27,5 +27,3 @@ function makeListNotifications({ notificationRepository }: Deps) {
       });
   };
 }
-
-module.exports = { makeListNotifications };

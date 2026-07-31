@@ -1,14 +1,14 @@
-const store = require('../../../store.ts');
-const { Recipient } = require('../domain/recipient.ts');
-import type { UserRecord } from '../../../store.ts';
-import type { RecipientRepository } from '../application/ports.ts';
-import type { Recipient as RecipientEntity } from '../domain/recipient.ts';
+import * as store from '#store';
+import { Recipient } from '#notification-delivery/domain/recipient.ts';
+import type { UserRecord } from '#store';
+import type { RecipientRepository } from '#notification-delivery/application/ports.ts';
+import type { Recipient as RecipientEntity } from '#notification-delivery/domain/recipient.ts';
 
 function toEntity(username: string, data: UserRecord): RecipientEntity {
   return new Recipient({ username, pushSubscription: data.subscription });
 }
 
-class JsonRecipientRepository implements RecipientRepository {
+export class JsonRecipientRepository implements RecipientRepository {
   users: Map<string, UserRecord>;
 
   constructor() {
@@ -38,5 +38,3 @@ class JsonRecipientRepository implements RecipientRepository {
     store.save(this.users);
   }
 }
-
-module.exports = { JsonRecipientRepository };

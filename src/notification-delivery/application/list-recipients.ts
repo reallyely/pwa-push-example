@@ -9,11 +9,9 @@ export interface RecipientView {
   subscribed: boolean;
 }
 
-function makeListRecipients({ recipientRepository }: Deps) {
+export function makeListRecipients({ recipientRepository }: Deps) {
   return async function listRecipients(): Promise<RecipientView[]> {
     const recipients = await recipientRepository.findAll();
     return recipients.map((r) => ({ username: r.username, subscribed: !!r.pushSubscription }));
   };
 }
-
-module.exports = { makeListRecipients };

@@ -1,4 +1,4 @@
-const { STATUSES } = require('./notification-status.ts');
+import { STATUSES } from './notification-status.ts';
 import type { NotificationStatus } from './notification-status.ts';
 
 interface NotificationProps {
@@ -26,7 +26,7 @@ interface DomainError extends Error {
   code?: string;
 }
 
-class Notification {
+export class Notification {
   id: string;
   recipientId: string;
   title: string;
@@ -115,6 +115,3 @@ class Notification {
     }
   }
 }
-
-module.exports = { Notification };
-export type { Notification };

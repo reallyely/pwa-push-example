@@ -20,7 +20,7 @@ interface AppError extends Error {
   code?: string;
 }
 
-function makeDeliverNotification({ notificationRepository, recipientRepository, pushGateway, now = () => new Date() }: Deps) {
+export function makeDeliverNotification({ notificationRepository, recipientRepository, pushGateway, now = () => new Date() }: Deps) {
   return async function deliverNotification({ notificationId }: DeliverNotificationRequest): Promise<DeliverNotificationResponse> {
     const notification = await notificationRepository.findById(notificationId);
     if (!notification) {
@@ -57,5 +57,3 @@ function makeDeliverNotification({ notificationRepository, recipientRepository, 
     return { status: notification.status, reason: notification.failureReason };
   };
 }
-
-module.exports = { makeDeliverNotification };
