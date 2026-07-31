@@ -17,7 +17,11 @@ restarts and redeploys.
 ---
 
 > [!info]
-> Read the [domain model](domain-model.md) to learn more about the pilot app's data model.
+> Read the [domain model](docs/domain-model.md) to learn more about the pilot app's data model.
+
+> [!info]
+> Read the [notification delivery model](docs/notification-delivery-model.md) to learn more
+> about the push-notification bounded context.
 
 > [!info]
 > Read [architecture.md](architecture.md) for how new capability gets added to this app —

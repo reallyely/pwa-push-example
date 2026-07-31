@@ -1,9 +1,9 @@
 # Architecture — how this application grows
 
 This document is the standing rule for how new capability gets added to this
-app. [`notification-delivery-model.md`](notification-delivery-model.md) is the
-first bounded context written to this standard, and is implemented. Write new
-bounded contexts to match it.
+app. [`notification-delivery-model.md`](docs/notification-delivery-model.md) is
+the first bounded context written to this standard, and is implemented. Write
+new bounded contexts to match it.
 
 ## Language & runtime
 
@@ -42,7 +42,11 @@ src/
     infrastructure/                # adapters implementing application/ports.ts
     interface/                     # controllers — thin, translate delivery mechanism <-> use case
   shared-kernel/                   # only created the day two contexts provably need the
-                                    # same concept — do not scaffold this speculatively
+                                    # same domain concept — do not scaffold this speculatively
+  infrastructure/                  # generic technical infrastructure with zero domain knowledge —
+                                    # e.g. store.ts (JSON file persistence). Owns no entity/record
+                                    # types and no context-specific filenames; those belong to the
+                                    # bounded context's own infrastructure/ adapter that calls in here
 ```
 
 Rules that go with the tree:
@@ -59,6 +63,12 @@ Rules that go with the tree:
 - **One context never reaches into another context's `infrastructure/` or
   `interface/`.** Cross-context calls go through the target context's
   `application/` use cases only — that's the whole interface it exposes.
+- **`src/infrastructure/` is not a bounded context and not `shared-kernel/`.**
+  `shared-kernel/` holds a domain concept two contexts agree to share;
+  `src/infrastructure/` holds purely technical adapters (file I/O, HTTP
+  clients, etc.) that no context owns and every context may depend on. A file
+  here must not import from any bounded context's `domain/` or
+  `application/` — that dependency only ever runs the other way.
 - **`server.ts` (or its equivalent) is composition root only.** It constructs
   infrastructure adapters, injects them into use cases, mounts each context's
   `interface/` routes, and starts listening. It contains no business logic of
@@ -66,12 +76,12 @@ Rules that go with the tree:
 
 ## Where documentation lives
 
-- **One doc per bounded context, at repo root**, named `<context>-model.md`
-  (e.g. `notification-delivery-model.md`). Written *before* the code, since
-  that's when the hard modeling decisions actually get made — not moved into
-  `src/<context>/README.md` once code exists, so the doc isn't tied to a path
-  that may not exist yet when it's written.
-- **`context-map.md` at repo root, once a second bounded context exists.**
+- **One doc per bounded context, in `docs/`**, named `<context>-model.md`
+  (e.g. `docs/notification-delivery-model.md`). Written *before* the code,
+  since that's when the hard modeling decisions actually get made — not moved
+  into `src/<context>/README.md` once code exists, so the doc isn't tied to a
+  path that may not exist yet when it's written.
+- **`docs/context-map.md`, once a second bounded context exists.**
   Names every context and the integration relationship between them
   (Customer-Supplier, Conformist, Anti-Corruption Layer, etc.). Until a second
   context exists, that relationship lives inline in the one context's doc (see

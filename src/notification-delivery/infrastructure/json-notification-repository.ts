@@ -2,9 +2,25 @@ import * as store from '#store';
 import { Notification } from '#notification-delivery/domain/notification.ts';
 import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
 import { migrateLegacyNotificationFiles } from './migrate-legacy-notification-files.ts';
-import type { NotificationRecord } from '#store';
+import type { LegacyNotificationEntry, LegacyScheduledEntry } from './migrate-legacy-notification-files.ts';
 import type { NotificationRepository } from '#notification-delivery/application/ports.ts';
 import type { Notification as NotificationEntity } from '#notification-delivery/domain/notification.ts';
+
+const NOTIFICATION_RECORDS_FILE = store.dataFilePath('notification-records.json');
+const LEGACY_NOTIFICATIONS_FILE = store.dataFilePath('notifications.json');
+const LEGACY_SCHEDULED_FILE = store.dataFilePath('scheduled.json');
+
+export interface NotificationRecord {
+  id: string;
+  recipientId: string;
+  title: string;
+  description: string;
+  scheduledDateTime: string;
+  icon: string | null;
+  status: string;
+  sentDateTime: string | null;
+  failureReason: string | null;
+}
 
 function toEntity(record: NotificationRecord): NotificationEntity {
   return new Notification({
@@ -43,13 +59,13 @@ export class JsonNotificationRepository implements NotificationRepository {
   private claimedIds: Set<string>;
 
   constructor() {
-    const existing = store.loadNotificationRecords();
-    if (existing !== null) {
+    const existing = store.readJsonFile<NotificationRecord[]>(NOTIFICATION_RECORDS_FILE);
+    if (existing !== undefined) {
       this.records = existing;
     } else {
       this.records = migrateLegacyNotificationFiles({
-        legacyNotifications: store.loadNotifications(),
-        legacyScheduled: store.loadScheduled(),
+        legacyNotifications: store.readJsonFile<LegacyNotificationEntry[]>(LEGACY_NOTIFICATIONS_FILE) ?? [],
+        legacyScheduled: store.readJsonFile<LegacyScheduledEntry[]>(LEGACY_SCHEDULED_FILE) ?? [],
       });
       console.log(`[notification-delivery] migrated ${this.records.length} legacy notification record(s)`);
       this.persist();
@@ -91,6 +107,6 @@ export class JsonNotificationRepository implements NotificationRepository {
   }
 
   private persist(): void {
-    store.saveNotificationRecords(this.records);
+    store.writeJsonFile(NOTIFICATION_RECORDS_FILE, this.records);
   }
 }

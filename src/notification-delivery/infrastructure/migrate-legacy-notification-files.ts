@@ -1,5 +1,27 @@
 import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
-import type { LegacyNotificationEntry, LegacyScheduledEntry, NotificationRecord } from '#store';
+import type { NotificationRecord } from './json-notification-repository.ts';
+
+export interface LegacyNotificationEntry {
+  id: string;
+  username: string;
+  title: string;
+  body: string;
+  sentAt: string;
+  status: 'sent' | 'failed' | 'expired';
+}
+
+export interface LegacyScheduledEntry {
+  id: string;
+  username: string;
+  title: string;
+  body: string;
+  icon?: string | null;
+  sendAt: string;
+  status: 'pending' | 'sending' | 'sent' | 'failed' | 'expired' | 'canceled';
+  createdAt: string;
+  sentAt: string | null;
+  error?: string;
+}
 
 interface MigrateArgs {
   legacyNotifications: LegacyNotificationEntry[];

@@ -116,7 +116,7 @@ only ever iterates what `claimDueNotifications` handed it.
 ## Target layering
 
 Implemented, as TypeScript run directly via `node --experimental-strip-types`
-(see [`architecture.md`](architecture.md) — no build step, no `tsconfig.json`):
+(see [`architecture.md`](../architecture.md) — no build step, no `tsconfig.json`):
 
 ```
 src/notification-delivery/
@@ -136,17 +136,27 @@ src/notification-delivery/
     run-due-notifications.ts    # claims due Scheduled notifications, delegates to deliver-notification
     list-notifications.ts       # filtered read: status != Scheduled, or status == Scheduled
   infrastructure/
-    json-recipient-repository.ts     # wraps store.ts — implements RecipientRepository
-    json-notification-repository.ts  # implements NotificationRepository
+    json-recipient-repository.ts     # implements RecipientRepository; owns RecipientRecord + recipients.json
+    json-notification-repository.ts  # implements NotificationRepository; owns NotificationRecord + notification-records.json
+    migrate-legacy-notification-files.ts  # owns LegacyNotificationEntry/LegacyScheduledEntry (pre-refactor shapes)
     web-push-gateway.ts               # implements PushGateway — only file importing 'web-push'
   interface/
     http-routes.ts              # Express routes — thin controllers calling application/ use cases
 ```
 
+`src/infrastructure/store.ts` is a **generic technical infrastructure** module
+(see [`architecture.md`](../architecture.md)) — not part of this or any
+bounded context: it knows how to atomically read/write a JSON file or a `Map`
+serialized as one, and nothing else. It declares no type for `Recipient`,
+`Notification`, or any other entity — those record/DTO shapes, and the
+specific filenames they're persisted under, are owned by this context's own
+`infrastructure/` files above, which are the only callers of `store.ts` (via
+the `#store` import alias).
+
 `server.ts` is wiring only: construct infrastructure adapters, inject into
 application use cases, mount `interface/http-routes.ts`, listen.
 
-`ports.ts` lives in `application/`, not `domain/` — per [`architecture.md`](architecture.md),
+`ports.ts` lives in `application/`, not `domain/` — per [`architecture.md`](../architecture.md),
 a repository/gateway interface is shaped by what this application needs to
 persist or deliver, not an Enterprise Business Rule the entities would carry
 regardless of the software.
