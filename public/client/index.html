@@ -1,28 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PWA Push Demo</title>
-<link rel="manifest" href="/manifest.webmanifest" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<meta name="theme-color" content="#4f46e5" />
-<link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-<main>
-  <h1>PWA Push Demo</h1>
-  <p>Register a username and enable notifications. On desktop/Android this works right away;
-  on iPhone/iPad you'll be asked to install to your Home Screen first, then reopen the app
-  from there and submit again.</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>PWA Push Demo</title>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="theme-color" content="#4f46e5" />
+        <link rel="stylesheet" href="/style.css" />
+    </head>
+    <body>
+        <main>
+            <h1>PWA Push Demo</h1>
+            <p>
+                Register a username and enable notifications. On desktop/Android
+                this works right away; on iPhone/iPad you'll be asked to install
+                to your Home Screen first, then reopen the app from there and
+                submit again.
+            </p>
 
-  <form id="register-form">
-    <input id="username" type="text" placeholder="Pick a username" autocomplete="off" required />
-    <button type="submit">Register &amp; Enable Notifications</button>
-  </form>
+            <form id="register-form">
+                <input
+                    id="username"
+                    type="text"
+                    placeholder="Pick a username"
+                    autocomplete="off"
+                    required
+                />
+                <button type="submit">
+                    Register &amp; Enable Notifications
+                </button>
+            </form>
 
-  <p id="status"></p>
-</main>
-<script src="/app.js"></script>
-</body>
+            <p id="status"></p>
+        </main>
+        <script src="/app.js"></script>
+    </body>
 </html>

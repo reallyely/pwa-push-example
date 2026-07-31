@@ -1,4 +1,5 @@
 import type { RecipientRepository, NotificationRepository, PushGateway } from './ports.ts';
+import { notificationDeliveryError } from './errors.ts';
 
 interface Deps {
   notificationRepository: NotificationRepository;
@@ -11,22 +12,16 @@ interface DeliverNotificationRequest {
   notificationId: string;
 }
 
-interface DeliverNotificationResponse {
+export interface DeliverNotificationResponse {
   status: string;
   reason?: string | null;
-}
-
-interface AppError extends Error {
-  code?: string;
 }
 
 export function makeDeliverNotification({ notificationRepository, recipientRepository, pushGateway, now = () => new Date() }: Deps) {
   return async function deliverNotification({ notificationId }: DeliverNotificationRequest): Promise<DeliverNotificationResponse> {
     const notification = await notificationRepository.findById(notificationId);
     if (!notification) {
-      const err: AppError = new Error('no such notification');
-      err.code = 'NOT_FOUND';
-      throw err;
+      throw notificationDeliveryError('no such notification', 'NOT_FOUND');
     }
 
     const recipient = await recipientRepository.findByUsername(notification.recipientId);

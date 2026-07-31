@@ -1,5 +1,6 @@
 import type { RecipientRepository } from './ports.ts';
 import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
+import { notificationDeliveryError } from './errors.ts';
 
 interface Deps {
   recipientRepository: RecipientRepository;
@@ -10,22 +11,14 @@ interface ResubscribeRecipientRequest {
   subscription: PushSubscriptionJSON;
 }
 
-interface AppError extends Error {
-  code?: string;
-}
-
 export function makeResubscribeRecipient({ recipientRepository }: Deps) {
   return async function resubscribeRecipient({ oldEndpoint, subscription }: ResubscribeRecipientRequest): Promise<void> {
     if (!subscription || !subscription.endpoint) {
-      const err: AppError = new Error('subscription is required');
-      err.code = 'INVALID_INPUT';
-      throw err;
+      throw notificationDeliveryError('subscription is required', 'INVALID_INPUT');
     }
     const recipient = await recipientRepository.findByEndpoint(oldEndpoint);
     if (!recipient) {
-      const err: AppError = new Error('no matching subscription found');
-      err.code = 'NOT_FOUND';
-      throw err;
+      throw notificationDeliveryError('no matching subscription found', 'NOT_FOUND');
     }
     recipient.subscribeToPush(subscription);
     await recipientRepository.save(recipient);

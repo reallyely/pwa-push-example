@@ -1,75 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin — Push Demo</title>
-<link rel="stylesheet" href="/admin/style.css" />
-</head>
-<body>
-<main>
-  <h1>Admin Dashboard</h1>
-  <p>Select a registered user and send them a push notification.</p>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Admin — Push Demo</title>
+        <link rel="stylesheet" href="/admin/style.css" />
+    </head>
+    <body>
+        <main>
+            <h1>Admin Dashboard</h1>
+            <p>Select a registered user and send them a push notification.</p>
 
-  <form id="send-form">
-    <label for="user-select">User</label>
-    <select id="user-select" required></select>
+            <form id="send-form">
+                <label for="user-select">User</label>
+                <select id="user-select" required></select>
 
-    <label for="title">Title</label>
-    <input id="title" type="text" value="Demo notification" required />
+                <label for="title">Title</label>
+                <input
+                    id="title"
+                    type="text"
+                    value="Demo notification"
+                    required
+                />
 
-    <label for="body">Message</label>
-    <input id="body" type="text" placeholder="Hello from the admin dashboard" />
+                <label for="body">Message</label>
+                <input
+                    id="body"
+                    type="text"
+                    placeholder="Hello from the admin dashboard"
+                />
 
-    <label for="icon">Icon URL (optional)</label>
-    <input id="icon" type="text" placeholder="https://example.com/icon.png" />
+                <label for="icon">Icon URL (optional)</label>
+                <input
+                    id="icon"
+                    type="text"
+                    placeholder="https://example.com/icon.png"
+                />
 
-    <label class="checkbox-label">
-      <input id="schedule-toggle" type="checkbox" />
-      Schedule for later
-    </label>
+                <label class="checkbox-label">
+                    <input id="schedule-toggle" type="checkbox" />
+                    Schedule for later
+                </label>
 
-    <label for="send-at" id="send-at-label" hidden>Send at</label>
-    <input id="send-at" type="datetime-local" hidden />
+                <label for="send-at" id="send-at-label" hidden>Send at</label>
+                <input id="send-at" type="datetime-local" hidden />
 
-    <button id="submit-button" type="submit">Send Push</button>
-  </form>
+                <button id="submit-button" type="submit">Send Push</button>
+            </form>
 
-  <p id="status"></p>
+            <p id="status"></p>
 
-  <h2>Scheduled Notifications</h2>
-  <table id="scheduled-table">
-    <thead>
-      <tr>
-        <th>Sent to</th>
-        <th>Send at</th>
-        <th>Title</th>
-        <th>Message</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="scheduled-body">
-      <tr><td colspan="6">Loading...</td></tr>
-    </tbody>
-  </table>
+            <h2>Scheduled Notifications</h2>
+            <table id="scheduled-table">
+                <thead>
+                    <tr>
+                        <th>Sent to</th>
+                        <th>Send at</th>
+                        <th>Title</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="scheduled-body">
+                    <tr>
+                        <td colspan="6">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
 
-  <h2>Notification History</h2>
-  <table id="notifications-table">
-    <thead>
-      <tr>
-        <th>Sent to</th>
-        <th>Sent at</th>
-        <th>Title</th>
-        <th>Message</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="notifications-body">
-      <tr><td colspan="5">Loading...</td></tr>
-    </tbody>
-  </table>
-</main>
-<script src="/admin/app.js"></script>
-</body>
+            <h2>Notification History</h2>
+            <table id="notifications-table">
+                <thead>
+                    <tr>
+                        <th>Sent to</th>
+                        <th>Sent at</th>
+                        <th>Title</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="notifications-body">
+                    <tr>
+                        <td colspan="5">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </main>
+        <script src="/admin/app.js"></script>
+    </body>
 </html>

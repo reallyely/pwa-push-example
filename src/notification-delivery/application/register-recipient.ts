@@ -1,5 +1,6 @@
 import { Recipient } from '#notification-delivery/domain/recipient.ts';
 import type { RecipientRepository } from './ports.ts';
+import { notificationDeliveryError } from './errors.ts';
 
 interface Deps {
   recipientRepository: RecipientRepository;
@@ -13,16 +14,10 @@ interface RegisterRecipientResponse {
   username: string;
 }
 
-interface InputError extends Error {
-  code?: string;
-}
-
 export function makeRegisterRecipient({ recipientRepository }: Deps) {
   return async function registerRecipient({ username }: RegisterRecipientRequest): Promise<RegisterRecipientResponse> {
     if (!username || typeof username !== 'string' || !username.trim()) {
-      const err: InputError = new Error('username is required');
-      err.code = 'INVALID_INPUT';
-      throw err;
+      throw notificationDeliveryError('username is required', 'INVALID_INPUT');
     }
     const name = username.trim();
     const existing = await recipientRepository.findByUsername(name);

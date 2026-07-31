@@ -126,6 +126,9 @@ src/notification-delivery/
     notification-status.ts     # value object: Scheduled | Sent | Failed | Cancelled
   application/
     ports.ts                    # RecipientRepository, NotificationRepository, PushGateway (interfaces)
+    errors.ts                   # NotificationDeliveryError — this context's coded-error shape,
+                                 # thrown by use cases and (re-)thrown from domain guards, mapped
+                                 # to HTTP status by interface/http-errors.ts
     register-recipient.ts       # idempotent: create Recipient if username unknown
     subscribe-recipient.ts      # attach a push subscription to a known Recipient
     resubscribe-recipient.ts    # re-key a subscription found by its old endpoint
@@ -142,6 +145,11 @@ src/notification-delivery/
     web-push-gateway.ts               # implements PushGateway — only file importing 'web-push'
   interface/
     http-routes.ts              # Express routes — thin controllers calling application/ use cases
+    notification-presenter.ts   # pure: domain Notification -> wire NotificationView, deliver result -> HTTP outcome
+    http-errors.ts               # error-code -> HTTP-status mapping, sendError (imports
+                                 # NotificationDeliveryError from application/errors.ts rather
+                                 # than owning the type — it doesn't originate the error, only
+                                 # translates its .code to an HTTP status)
 ```
 
 `src/infrastructure/store.ts` is a **generic technical infrastructure** module

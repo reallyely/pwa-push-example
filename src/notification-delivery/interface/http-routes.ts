@@ -1,15 +1,10 @@
 import express from 'express';
-import type { Notification } from '#notification-delivery/domain/notification.ts';
 import type { RecipientView } from '#notification-delivery/application/list-recipients.ts';
-
-interface AppError extends Error {
-  code?: string;
-}
-
-interface DeliverResult {
-  status: string;
-  reason?: string | null;
-}
+import type { DeliverNotificationResponse } from '#notification-delivery/application/deliver-notification.ts';
+import type { Notification } from '#notification-delivery/domain/notification.ts';
+import { toNotificationView, toSendOutcome } from './notification-presenter.ts';
+import { sendError } from './http-errors.ts';
+import type { NotificationDeliveryError } from '#notification-delivery/application/errors.ts';
 
 interface HttpRoutesConfig {
   vapidPublicKey: string;
@@ -26,49 +21,9 @@ interface HttpRoutesConfig {
     icon?: string;
   }) => Promise<{ notificationId: string }>;
   cancelScheduledNotification: (request: { notificationId: string }) => Promise<void>;
-  deliverNotification: (request: { notificationId: string }) => Promise<DeliverResult>;
+  deliverNotification: (request: { notificationId: string }) => Promise<DeliverNotificationResponse>;
   runDueNotifications: () => Promise<{ checked: number; sent: number }>;
   listNotifications: (request: { view: 'scheduled' | 'history' }) => Promise<Notification[]>;
-}
-
-const ERROR_STATUS_BY_CODE: Record<string, number> = {
-  NOT_FOUND: 404,
-  INVALID_INPUT: 400,
-  INVALID_SCHEDULE: 400,
-  INVALID_TRANSITION: 409,
-};
-
-function sendError(res: any, err: AppError, fallbackStatus = 500): void {
-  const status = (err.code && ERROR_STATUS_BY_CODE[err.code]) || fallbackStatus;
-  if (status === 500) console.error(err);
-  res.status(status).json({ error: err.message });
-}
-
-function toWireStatus(notification: Notification): string {
-  switch (notification.status) {
-    case 'Scheduled': return 'pending';
-    case 'Sent': return 'sent';
-    case 'Cancelled': return 'canceled';
-    case 'Failed':
-      return notification.failureReason === 'subscription-expired' ? 'expired' : 'failed';
-    default: return notification.status;
-  }
-}
-
-// Translates the domain shape (recipientId/description/scheduledDateTime/
-// sentDateTime) into the wire shape public/admin/app.js already expects
-// (username/body/sendAt/sentAt), so the frontend needs no changes.
-function toNotificationView(notification: Notification) {
-  return {
-    id: notification.id,
-    username: notification.recipientId,
-    title: notification.title,
-    body: notification.description,
-    icon: notification.icon || undefined,
-    sendAt: notification.scheduledDateTime.toISOString(),
-    sentAt: notification.sentDateTime ? notification.sentDateTime.toISOString() : null,
-    status: toWireStatus(notification),
-  };
 }
 
 export function makeHttpRoutes({
@@ -96,7 +51,7 @@ export function makeHttpRoutes({
       const result = await registerRecipient({ username: (req.body || {}).username });
       res.status(201).json(result);
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 
@@ -106,7 +61,7 @@ export function makeHttpRoutes({
       await subscribeRecipient({ username, subscription });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 
@@ -116,7 +71,7 @@ export function makeHttpRoutes({
       await resubscribeRecipient({ oldEndpoint, subscription });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 
@@ -135,17 +90,10 @@ export function makeHttpRoutes({
         icon,
       });
       const result = await deliverNotification({ notificationId });
-      if (result.status === 'Sent') {
-        return res.json({ ok: true });
-      }
-      const statusByReason: Record<string, [number, string]> = {
-        'no-active-subscription': [409, 'user has no active push subscription'],
-        'subscription-expired': [410, 'subscription expired, ask user to re-register'],
-      };
-      const [httpStatus, message] = statusByReason[result.reason || ''] || [500, 'failed to send notification'];
-      res.status(httpStatus).json({ error: message });
+      const { httpStatus, body: responseBody } = toSendOutcome(result);
+      res.status(httpStatus).json(responseBody);
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 
@@ -181,7 +129,7 @@ export function makeHttpRoutes({
         status: 'pending',
       });
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 
@@ -195,7 +143,7 @@ export function makeHttpRoutes({
       await cancelScheduledNotification({ notificationId: req.params.id });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err as AppError);
+      sendError(res, err as NotificationDeliveryError);
     }
   });
 

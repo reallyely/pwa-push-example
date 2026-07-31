@@ -1,5 +1,6 @@
 import { Notification } from '#notification-delivery/domain/notification.ts';
 import type { RecipientRepository, NotificationRepository } from './ports.ts';
+import { notificationDeliveryError } from './errors.ts';
 
 interface Deps {
   recipientRepository: RecipientRepository;
@@ -19,10 +20,6 @@ interface ScheduleNotificationResponse {
   notificationId: string;
 }
 
-interface AppError extends Error {
-  code?: string;
-}
-
 export function makeScheduleNotification({ recipientRepository, notificationRepository, generateId }: Deps) {
   return async function scheduleNotification({
     recipientId,
@@ -33,9 +30,7 @@ export function makeScheduleNotification({ recipientRepository, notificationRepo
   }: ScheduleNotificationRequest): Promise<ScheduleNotificationResponse> {
     const recipient = await recipientRepository.findByUsername(recipientId);
     if (!recipient) {
-      const err: AppError = new Error('unknown username, register first');
-      err.code = 'NOT_FOUND';
-      throw err;
+      throw notificationDeliveryError('unknown username, register first', 'NOT_FOUND');
     }
     const notification = Notification.schedule({
       id: generateId(),
