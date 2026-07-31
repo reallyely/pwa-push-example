@@ -1,5 +1,7 @@
 # PWA Push Demo
 
+A live version of this app is available https://pwa-test.fly.dev/
+
 Minimal demo: an installable PWA client that registers a username and subscribes to
 push notifications, an admin dashboard that can send a push to a specific user, and
 one Express server backing both. Storage is in-memory only — restarting the server
@@ -8,6 +10,12 @@ clears registered users/subscriptions, which is fine for this throwaway demo.
 - Client app: `/` — register a username, grant notification permission, install to
   home screen.
 - Admin dashboard: `/admin` — pick a registered user, send them a push.
+
+
+---
+
+> [!info]
+> Read the [domain model](domain-model.md) to learn more about the pilot app's data model.
 
 ## Run locally
 

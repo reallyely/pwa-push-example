@@ -87,19 +87,33 @@ app.post('/api/send', async (req, res) => {
     icon: icon || undefined,
   });
 
+  const sentAt = new Date();
+  const endpoint = user.subscription.endpoint;
+  console.log(
+    `[push] sending to ${username} at ${sentAt.toISOString()} (endpoint ...${endpoint.slice(-24)})`
+  );
+
   try {
     // 'high' urgency maps to FCM high-priority, which Android's push service
     // wakes the device for even in Doze/App Standby. Without it, Chrome
     // defaults to 'normal' urgency, which Android can defer indefinitely
     // once the app is backgrounded/closed and the device goes idle.
-    await webpush.sendNotification(user.subscription, payload, { urgency: 'high' });
+    const result = await webpush.sendNotification(user.subscription, payload, { urgency: 'high' });
+    const tookMs = Date.now() - sentAt.getTime();
+    console.log(
+      `[push] accepted by push service for ${username} in ${tookMs}ms (status ${result.statusCode})`
+    );
     res.json({ ok: true });
   } catch (err) {
+    const tookMs = Date.now() - sentAt.getTime();
     if (err.statusCode === 404 || err.statusCode === 410) {
       user.subscription = null;
+      console.warn(
+        `[push] subscription gone for ${username} after ${tookMs}ms (status ${err.statusCode}) — cleared`
+      );
       return res.status(410).json({ error: 'subscription expired, ask user to re-register' });
     }
-    console.error('sendNotification failed', err);
+    console.error(`[push] send failed for ${username} after ${tookMs}ms`, err);
     res.status(500).json({ error: 'failed to send notification' });
   }
 });
