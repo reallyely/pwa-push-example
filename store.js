@@ -5,6 +5,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'users.json');
 const NOTIFICATIONS_FILE = path.join(DATA_DIR, 'notifications.json');
 const SCHEDULED_FILE = path.join(DATA_DIR, 'scheduled.json');
+const NOTIFICATION_RECORDS_FILE = path.join(DATA_DIR, 'notification-records.json');
 
 function load() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -67,6 +68,29 @@ function saveScheduled(scheduled) {
   fs.renameSync(tmpFile, SCHEDULED_FILE);
 }
 
+// Returns null (not []) when the file has never been written, so a caller
+// can distinguish "not yet migrated from the legacy notifications.json /
+// scheduled.json files" from "migrated, but currently empty".
+function loadNotificationRecords() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(NOTIFICATION_RECORDS_FILE)) {
+    return null;
+  }
+  try {
+    const raw = fs.readFileSync(NOTIFICATION_RECORDS_FILE, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error(`[store] failed to read ${NOTIFICATION_RECORDS_FILE}, starting empty`, err);
+    return [];
+  }
+}
+
+function saveNotificationRecords(records) {
+  const tmpFile = `${NOTIFICATION_RECORDS_FILE}.tmp`;
+  fs.writeFileSync(tmpFile, JSON.stringify(records, null, 2));
+  fs.renameSync(tmpFile, NOTIFICATION_RECORDS_FILE);
+}
+
 module.exports = {
   load,
   save,
@@ -74,4 +98,6 @@ module.exports = {
   saveNotifications,
   loadScheduled,
   saveScheduled,
+  loadNotificationRecords,
+  saveNotificationRecords,
 };

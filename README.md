@@ -19,6 +19,10 @@ restarts and redeploys.
 > [!info]
 > Read the [domain model](domain-model.md) to learn more about the pilot app's data model.
 
+> [!info]
+> Read [architecture.md](architecture.md) for how new capability gets added to this app —
+> the folder architecture and per-bounded-context doc template every new context follows.
+
 ## Run locally
 
 ```bash
