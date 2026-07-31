@@ -1,11 +1,23 @@
 const webpush = require('web-push');
+import type { PushGateway, PushGatewayResult } from '../application/ports.ts';
+import type { PushSubscriptionJSON } from '../domain/recipient.ts';
 
-class WebPushGateway {
-  constructor({ vapidSubject, vapidPublicKey, vapidPrivateKey }) {
+interface WebPushConfig {
+  vapidSubject: string;
+  vapidPublicKey: string;
+  vapidPrivateKey: string;
+}
+
+interface WebPushError extends Error {
+  statusCode?: number;
+}
+
+class WebPushGateway implements PushGateway {
+  constructor({ vapidSubject, vapidPublicKey, vapidPrivateKey }: WebPushConfig) {
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
   }
 
-  async send(pushSubscription, payload) {
+  async send(pushSubscription: PushSubscriptionJSON, payload: string): Promise<PushGatewayResult> {
     try {
       // 'high' urgency maps to FCM high-priority, which Android's push service
       // wakes the device for even in Doze/App Standby. Default 'normal' can be
@@ -13,7 +25,8 @@ class WebPushGateway {
       await webpush.sendNotification(pushSubscription, payload, { urgency: 'high' });
       return { ok: true };
     } catch (err) {
-      if (err.statusCode === 404 || err.statusCode === 410) {
+      const pushErr = err as WebPushError;
+      if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
         return { ok: false, reason: 'subscription-expired' };
       }
       console.error('[push] send failed', err);

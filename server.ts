@@ -2,21 +2,21 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 
-const { JsonRecipientRepository } = require('./src/notification-delivery/infrastructure/json-recipient-repository');
-const { JsonNotificationRepository } = require('./src/notification-delivery/infrastructure/json-notification-repository');
-const { WebPushGateway } = require('./src/notification-delivery/infrastructure/web-push-gateway');
+const { JsonRecipientRepository } = require('./src/notification-delivery/infrastructure/json-recipient-repository.ts');
+const { JsonNotificationRepository } = require('./src/notification-delivery/infrastructure/json-notification-repository.ts');
+const { WebPushGateway } = require('./src/notification-delivery/infrastructure/web-push-gateway.ts');
 
-const { makeRegisterRecipient } = require('./src/notification-delivery/application/register-recipient');
-const { makeSubscribeRecipient } = require('./src/notification-delivery/application/subscribe-recipient');
-const { makeResubscribeRecipient } = require('./src/notification-delivery/application/resubscribe-recipient');
-const { makeListRecipients } = require('./src/notification-delivery/application/list-recipients');
-const { makeScheduleNotification } = require('./src/notification-delivery/application/schedule-notification');
-const { makeCancelScheduledNotification } = require('./src/notification-delivery/application/cancel-scheduled-notification');
-const { makeDeliverNotification } = require('./src/notification-delivery/application/deliver-notification');
-const { makeRunDueNotifications } = require('./src/notification-delivery/application/run-due-notifications');
-const { makeListNotifications } = require('./src/notification-delivery/application/list-notifications');
+const { makeRegisterRecipient } = require('./src/notification-delivery/application/register-recipient.ts');
+const { makeSubscribeRecipient } = require('./src/notification-delivery/application/subscribe-recipient.ts');
+const { makeResubscribeRecipient } = require('./src/notification-delivery/application/resubscribe-recipient.ts');
+const { makeListRecipients } = require('./src/notification-delivery/application/list-recipients.ts');
+const { makeScheduleNotification } = require('./src/notification-delivery/application/schedule-notification.ts');
+const { makeCancelScheduledNotification } = require('./src/notification-delivery/application/cancel-scheduled-notification.ts');
+const { makeDeliverNotification } = require('./src/notification-delivery/application/deliver-notification.ts');
+const { makeRunDueNotifications } = require('./src/notification-delivery/application/run-due-notifications.ts');
+const { makeListNotifications } = require('./src/notification-delivery/application/list-notifications.ts');
 
-const { makeHttpRoutes } = require('./src/notification-delivery/interface/http-routes');
+const { makeHttpRoutes } = require('./src/notification-delivery/interface/http-routes.ts');
 
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET, PORT = 3000 } = process.env;
 
@@ -24,7 +24,7 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || !VAPID_SUBJECT) {
   throw new Error('Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT env vars');
 }
 
-function generateId() {
+function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 

@@ -1,7 +1,8 @@
 # Notification Delivery — Bounded Context
 
-This document captures the domain model for the existing push-notification code
-(currently `server.js` / `store.js`), scoped deliberately as its own **bounded
+This document captures the domain model for the push-notification code
+(originally a monolithic `server.js` / `store.js`, now `src/notification-delivery/`
+plus a composition-root `server.ts`), scoped deliberately as its own **bounded
 context**, separate from the Core Domain described in
 [`domain-model.md`](domain-model.md) (Training / Survey / Participant / Question).
 
@@ -114,35 +115,38 @@ only ever iterates what `claimDueNotifications` handed it.
 
 ## Target layering
 
+Implemented, as TypeScript run directly via `node --experimental-strip-types`
+(see [`architecture.md`](architecture.md) — no build step, no `tsconfig.json`):
+
 ```
 src/notification-delivery/
   domain/
-    recipient.js               # entity: register/subscribeToPush/clearSubscription
-    notification.js            # entity: schedule/cancel/markSent/markFailed, guards transitions
-    notification-status.js     # value object: Scheduled | Sent | Failed | Cancelled
+    recipient.ts               # entity: register/subscribeToPush/clearSubscription
+    notification.ts            # entity: schedule/cancel/markSent/markFailed, guards transitions
+    notification-status.ts     # value object: Scheduled | Sent | Failed | Cancelled
   application/
-    ports.js                    # RecipientRepository, NotificationRepository, PushGateway (interfaces)
-    register-recipient.js       # idempotent: create Recipient if username unknown
-    subscribe-recipient.js      # attach a push subscription to a known Recipient
-    resubscribe-recipient.js    # re-key a subscription found by its old endpoint
-    list-recipients.js          # for the admin dashboard's user picker
-    schedule-notification.js
-    cancel-scheduled-notification.js
-    deliver-notification.js     # calls PushGateway, reacts to result, calls entity transitions
-    run-due-notifications.js    # claims due Scheduled notifications, delegates to deliver-notification
-    list-notifications.js       # filtered read: status != Scheduled, or status == Scheduled
+    ports.ts                    # RecipientRepository, NotificationRepository, PushGateway (interfaces)
+    register-recipient.ts       # idempotent: create Recipient if username unknown
+    subscribe-recipient.ts      # attach a push subscription to a known Recipient
+    resubscribe-recipient.ts    # re-key a subscription found by its old endpoint
+    list-recipients.ts          # for the admin dashboard's user picker
+    schedule-notification.ts
+    cancel-scheduled-notification.ts
+    deliver-notification.ts     # calls PushGateway, reacts to result, calls entity transitions
+    run-due-notifications.ts    # claims due Scheduled notifications, delegates to deliver-notification
+    list-notifications.ts       # filtered read: status != Scheduled, or status == Scheduled
   infrastructure/
-    json-recipient-repository.js     # wraps store.js — implements RecipientRepository
-    json-notification-repository.js  # implements NotificationRepository
-    web-push-gateway.js               # implements PushGateway — only file importing 'web-push'
+    json-recipient-repository.ts     # wraps store.ts — implements RecipientRepository
+    json-notification-repository.ts  # implements NotificationRepository
+    web-push-gateway.ts               # implements PushGateway — only file importing 'web-push'
   interface/
-    http-routes.js              # Express routes — thin controllers calling application/ use cases
+    http-routes.ts              # Express routes — thin controllers calling application/ use cases
 ```
 
-`server.js` becomes wiring only: construct infrastructure adapters, inject into
-application use cases, mount `interface/http-routes.js`, listen.
+`server.ts` is wiring only: construct infrastructure adapters, inject into
+application use cases, mount `interface/http-routes.ts`, listen.
 
-`ports.js` lives in `application/`, not `domain/` — per [`architecture.md`](architecture.md),
+`ports.ts` lives in `application/`, not `domain/` — per [`architecture.md`](architecture.md),
 a repository/gateway interface is shaped by what this application needs to
 persist or deliver, not an Enterprise Business Rule the entities would carry
 regardless of the software.
@@ -186,7 +190,7 @@ gap to leave implicit.
 
 Resolution: relax the entity guard to `scheduledDateTime` **not in the past**
 (`>= now`), so "send now" is modeled as "schedule for now," not as a separate
-creation path. `interface/http-routes.js`'s `/api/send` controller then calls
+creation path. `interface/http-routes.ts`'s `/api/send` controller then calls
 `scheduleNotification({ ..., scheduledDateTime: new Date() })` immediately
 followed by `deliverNotification({ notificationId })` in the same request —
 synchronously, same as today's route — rather than waiting for the next
@@ -199,7 +203,7 @@ case in the domain layer for "immediate."
 `GET /api/scheduled` (pending list) as two separate endpoints today, backed by
 two separate files (`notifications.json` + `scheduled.json`). The single
 `Notification` entity replaces both files, but the admin UI keeps its two
-endpoints — no frontend change needed. `interface/http-routes.js` implements
+endpoints — no frontend change needed. `interface/http-routes.ts` implements
 both as filtered reads over the one `NotificationRepository`:
 
 - `GET /api/notifications` → notifications where `status != Scheduled`
@@ -227,5 +231,3 @@ Training/Survey/Participant exist:
 
 - No `role` field or `RecipientRole` value object.
 - No `surveyId` / `purpose` field on `Notification`.
-- No refactor of `server.js`/`store.js` has happened yet — this document
-  records the target model and layering; implementation is a separate step.

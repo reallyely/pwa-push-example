@@ -1,19 +1,50 @@
 const express = require('express');
+import type { Notification } from '../domain/notification.ts';
+import type { RecipientView } from '../application/list-recipients.ts';
 
-const ERROR_STATUS_BY_CODE = {
+interface AppError extends Error {
+  code?: string;
+}
+
+interface DeliverResult {
+  status: string;
+  reason?: string | null;
+}
+
+interface HttpRoutesConfig {
+  vapidPublicKey: string;
+  cronSecret?: string;
+  registerRecipient: (request: { username: string }) => Promise<{ username: string }>;
+  subscribeRecipient: (request: { username: string; subscription: any }) => Promise<void>;
+  resubscribeRecipient: (request: { oldEndpoint: string; subscription: any }) => Promise<void>;
+  listRecipients: () => Promise<RecipientView[]>;
+  scheduleNotification: (request: {
+    recipientId: string;
+    title: string;
+    description: string;
+    scheduledDateTime: Date;
+    icon?: string;
+  }) => Promise<{ notificationId: string }>;
+  cancelScheduledNotification: (request: { notificationId: string }) => Promise<void>;
+  deliverNotification: (request: { notificationId: string }) => Promise<DeliverResult>;
+  runDueNotifications: () => Promise<{ checked: number; sent: number }>;
+  listNotifications: (request: { view: 'scheduled' | 'history' }) => Promise<Notification[]>;
+}
+
+const ERROR_STATUS_BY_CODE: Record<string, number> = {
   NOT_FOUND: 404,
   INVALID_INPUT: 400,
   INVALID_SCHEDULE: 400,
   INVALID_TRANSITION: 409,
 };
 
-function sendError(res, err, fallbackStatus = 500) {
-  const status = ERROR_STATUS_BY_CODE[err.code] || fallbackStatus;
+function sendError(res: any, err: AppError, fallbackStatus = 500): void {
+  const status = (err.code && ERROR_STATUS_BY_CODE[err.code]) || fallbackStatus;
   if (status === 500) console.error(err);
   res.status(status).json({ error: err.message });
 }
 
-function toWireStatus(notification) {
+function toWireStatus(notification: Notification): string {
   switch (notification.status) {
     case 'Scheduled': return 'pending';
     case 'Sent': return 'sent';
@@ -27,7 +58,7 @@ function toWireStatus(notification) {
 // Translates the domain shape (recipientId/description/scheduledDateTime/
 // sentDateTime) into the wire shape public/admin/app.js already expects
 // (username/body/sendAt/sentAt), so the frontend needs no changes.
-function toNotificationView(notification) {
+function toNotificationView(notification: Notification) {
   return {
     id: notification.id,
     username: notification.recipientId,
@@ -52,48 +83,48 @@ function makeHttpRoutes({
   deliverNotification,
   runDueNotifications,
   listNotifications,
-}) {
+}: HttpRoutesConfig) {
   const router = express.Router();
   router.use(express.json());
 
-  router.get('/api/vapid-public-key', (req, res) => {
+  router.get('/api/vapid-public-key', (req: any, res: any) => {
     res.json({ publicKey: vapidPublicKey });
   });
 
-  router.post('/api/register', async (req, res) => {
+  router.post('/api/register', async (req: any, res: any) => {
     try {
       const result = await registerRecipient({ username: (req.body || {}).username });
       res.status(201).json(result);
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.post('/api/subscribe', async (req, res) => {
+  router.post('/api/subscribe', async (req: any, res: any) => {
     try {
       const { username, subscription } = req.body || {};
       await subscribeRecipient({ username, subscription });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.post('/api/resubscribe', async (req, res) => {
+  router.post('/api/resubscribe', async (req: any, res: any) => {
     try {
       const { oldEndpoint, subscription } = req.body || {};
       await resubscribeRecipient({ oldEndpoint, subscription });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.get('/api/users', async (req, res) => {
+  router.get('/api/users', async (req: any, res: any) => {
     res.json(await listRecipients());
   });
 
-  router.post('/api/send', async (req, res) => {
+  router.post('/api/send', async (req: any, res: any) => {
     try {
       const { username, title, body, icon } = req.body || {};
       const { notificationId } = await scheduleNotification({
@@ -107,23 +138,23 @@ function makeHttpRoutes({
       if (result.status === 'Sent') {
         return res.json({ ok: true });
       }
-      const statusByReason = {
+      const statusByReason: Record<string, [number, string]> = {
         'no-active-subscription': [409, 'user has no active push subscription'],
         'subscription-expired': [410, 'subscription expired, ask user to re-register'],
       };
-      const [httpStatus, message] = statusByReason[result.reason] || [500, 'failed to send notification'];
+      const [httpStatus, message] = statusByReason[result.reason || ''] || [500, 'failed to send notification'];
       res.status(httpStatus).json({ error: message });
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.get('/api/notifications', async (req, res) => {
+  router.get('/api/notifications', async (req: any, res: any) => {
     const list = await listNotifications({ view: 'history' });
     res.json(list.map(toNotificationView));
   });
 
-  router.post('/api/schedule', async (req, res) => {
+  router.post('/api/schedule', async (req: any, res: any) => {
     try {
       const { username, title, body, icon, sendAt } = req.body || {};
       if (!sendAt) {
@@ -150,25 +181,25 @@ function makeHttpRoutes({
         status: 'pending',
       });
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.get('/api/scheduled', async (req, res) => {
+  router.get('/api/scheduled', async (req: any, res: any) => {
     const list = await listNotifications({ view: 'scheduled' });
     res.json(list.map(toNotificationView));
   });
 
-  router.delete('/api/scheduled/:id', async (req, res) => {
+  router.delete('/api/scheduled/:id', async (req: any, res: any) => {
     try {
       await cancelScheduledNotification({ notificationId: req.params.id });
       res.status(204).end();
     } catch (err) {
-      sendError(res, err);
+      sendError(res, err as AppError);
     }
   });
 
-  router.get('/api/cron/tick', async (req, res) => {
+  router.get('/api/cron/tick', async (req: any, res: any) => {
     if (cronSecret && req.get('x-cron-secret') !== cronSecret) {
       return res.status(401).json({ error: 'unauthorized' });
     }

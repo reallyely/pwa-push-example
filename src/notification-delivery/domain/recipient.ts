@@ -1,5 +1,24 @@
+export interface PushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushSubscriptionJSON {
+  endpoint: string;
+  keys: PushSubscriptionKeys;
+  expirationTime?: number | null;
+}
+
+interface RecipientProps {
+  username: string;
+  pushSubscription?: PushSubscriptionJSON | null;
+}
+
 class Recipient {
-  constructor({ username, pushSubscription = null }) {
+  username: string;
+  pushSubscription: PushSubscriptionJSON | null;
+
+  constructor({ username, pushSubscription = null }: RecipientProps) {
     if (!username || typeof username !== 'string' || !username.trim()) {
       throw new Error('Recipient requires a non-empty username');
     }
@@ -7,11 +26,11 @@ class Recipient {
     this.pushSubscription = pushSubscription;
   }
 
-  static register(username) {
+  static register(username: string): Recipient {
     return new Recipient({ username });
   }
 
-  subscribeToPush(subscription) {
+  subscribeToPush(subscription: PushSubscriptionJSON): void {
     if (!subscription || !subscription.endpoint) {
       throw new Error('subscription requires an endpoint');
     }
@@ -20,9 +39,10 @@ class Recipient {
 
   // Invoked when a delivery attempt reports the subscription is gone
   // (PushGateway maps the push service's 404/410 to this outcome).
-  clearSubscription() {
+  clearSubscription(): void {
     this.pushSubscription = null;
   }
 }
 
 module.exports = { Recipient };
+export type { Recipient };

@@ -1,9 +1,12 @@
-const store = require('../../../store');
-const { Notification } = require('../domain/notification');
-const { STATUSES } = require('../domain/notification-status');
-const { migrateLegacyNotificationFiles } = require('./migrate-legacy-notification-files');
+const store = require('../../../store.ts');
+const { Notification } = require('../domain/notification.ts');
+const { STATUSES } = require('../domain/notification-status.ts');
+const { migrateLegacyNotificationFiles } = require('./migrate-legacy-notification-files.ts');
+import type { NotificationRecord } from '../../../store.ts';
+import type { NotificationRepository } from '../application/ports.ts';
+import type { Notification as NotificationEntity } from '../domain/notification.ts';
 
-function toEntity(record) {
+function toEntity(record: NotificationRecord): NotificationEntity {
   return new Notification({
     id: record.id,
     recipientId: record.recipientId,
@@ -17,7 +20,7 @@ function toEntity(record) {
   });
 }
 
-function toRecord(notification) {
+function toRecord(notification: NotificationEntity): NotificationRecord {
   return {
     id: notification.id,
     recipientId: notification.recipientId,
@@ -31,7 +34,14 @@ function toRecord(notification) {
   };
 }
 
-class JsonNotificationRepository {
+class JsonNotificationRepository implements NotificationRepository {
+  records: NotificationRecord[];
+  // Ids claimed by claimDueNotifications() but not yet saved back with a
+  // terminal status — closes the gap an overlapping tick could otherwise
+  // race through. Not part of NotificationStatus; see
+  // "Claiming due notifications must be atomic" in the model doc.
+  private claimedIds: Set<string>;
+
   constructor() {
     const existing = store.loadNotificationRecords();
     if (existing !== null) {
@@ -42,25 +52,21 @@ class JsonNotificationRepository {
         legacyScheduled: store.loadScheduled(),
       });
       console.log(`[notification-delivery] migrated ${this.records.length} legacy notification record(s)`);
-      this._persist();
+      this.persist();
     }
-    // Ids claimed by claimDueNotifications() but not yet saved back with a
-    // terminal status — closes the gap an overlapping tick could otherwise
-    // race through. Not part of NotificationStatus; see
-    // "Claiming due notifications must be atomic" in the model doc.
-    this._claimedIds = new Set();
+    this.claimedIds = new Set();
   }
 
-  async findById(id) {
+  async findById(id: string): Promise<NotificationEntity | null> {
     const record = this.records.find((r) => r.id === id);
     return record ? toEntity(record) : null;
   }
 
-  async findAll() {
+  async findAll(): Promise<NotificationEntity[]> {
     return this.records.map(toEntity);
   }
 
-  async save(notification) {
+  async save(notification: NotificationEntity): Promise<void> {
     const record = toRecord(notification);
     const index = this.records.findIndex((r) => r.id === record.id);
     if (index === -1) {
@@ -68,23 +74,23 @@ class JsonNotificationRepository {
     } else {
       this.records[index] = record;
     }
-    this._claimedIds.delete(record.id);
-    this._persist();
+    this.claimedIds.delete(record.id);
+    this.persist();
   }
 
-  async claimDueNotifications(now) {
+  async claimDueNotifications(now: Date): Promise<NotificationEntity[]> {
     const due = this.records.filter(
       (r) => r.status === STATUSES.SCHEDULED
-        && !this._claimedIds.has(r.id)
+        && !this.claimedIds.has(r.id)
         && new Date(r.scheduledDateTime).getTime() <= now.getTime()
     );
     for (const record of due) {
-      this._claimedIds.add(record.id);
+      this.claimedIds.add(record.id);
     }
     return due.map(toEntity);
   }
 
-  _persist() {
+  private persist(): void {
     store.saveNotificationRecords(this.records);
   }
 }

@@ -1,13 +1,59 @@
-const { STATUSES } = require('./notification-status');
+const { STATUSES } = require('./notification-status.ts');
+import type { NotificationStatus } from './notification-status.ts';
+
+interface NotificationProps {
+  id: string;
+  recipientId: string;
+  title: string;
+  description: string;
+  scheduledDateTime: Date;
+  icon?: string | null;
+  status: NotificationStatus;
+  sentDateTime?: Date | null;
+  failureReason?: string | null;
+}
+
+interface ScheduleProps {
+  id: string;
+  recipientId: string;
+  title: string;
+  description: string;
+  scheduledDateTime: Date;
+  icon?: string | null;
+}
+
+interface DomainError extends Error {
+  code?: string;
+}
 
 class Notification {
-  constructor({ id, recipientId, title, description, scheduledDateTime, icon = null, status, sentDateTime = null, failureReason = null }) {
+  id: string;
+  recipientId: string;
+  title: string;
+  description: string;
+  scheduledDateTime: Date;
+  icon: string | null;
+  status: NotificationStatus;
+  sentDateTime: Date | null;
+  failureReason: string | null;
+
+  constructor({
+    id,
+    recipientId,
+    title,
+    description,
+    scheduledDateTime,
+    icon = null,
+    status,
+    sentDateTime = null,
+    failureReason = null,
+  }: NotificationProps) {
     this.id = id;
     this.recipientId = recipientId;
     this.title = title;
     this.description = description;
     this.scheduledDateTime = scheduledDateTime;
-    this.icon = icon;
+    this.icon = icon ?? null;
     this.status = status;
     this.sentDateTime = sentDateTime;
     this.failureReason = failureReason;
@@ -16,14 +62,14 @@ class Notification {
   // The only creation path. Guards scheduledDateTime here, at creation time —
   // not in the constructor, since a legitimately Scheduled notification will
   // naturally have a past scheduledDateTime by the time it's reloaded as due.
-  static schedule({ id, recipientId, title, description, scheduledDateTime, icon = null }) {
+  static schedule({ id, recipientId, title, description, scheduledDateTime, icon = null }: ScheduleProps): Notification {
     if (!recipientId) throw new Error('Notification requires a recipientId');
     if (!title) throw new Error('Notification requires a title');
     if (!(scheduledDateTime instanceof Date) || Number.isNaN(scheduledDateTime.getTime())) {
       throw new Error('Notification requires a valid scheduledDateTime');
     }
     if (scheduledDateTime.getTime() < Date.now()) {
-      const err = new Error('scheduledDateTime must not be in the past');
+      const err: DomainError = new Error('scheduledDateTime must not be in the past');
       err.code = 'INVALID_SCHEDULE';
       throw err;
     }
@@ -40,30 +86,30 @@ class Notification {
     });
   }
 
-  markSent(sentDateTime) {
+  markSent(sentDateTime: Date): void {
     this._assertScheduled('markSent');
     this.status = STATUSES.SENT;
     this.sentDateTime = sentDateTime;
   }
 
-  markFailed(reason) {
+  markFailed(reason: string): void {
     this._assertScheduled('markFailed');
     this.status = STATUSES.FAILED;
     this.failureReason = reason;
   }
 
-  cancel() {
+  cancel(): void {
     this._assertScheduled('cancel');
     this.status = STATUSES.CANCELLED;
   }
 
-  isDue(now = new Date()) {
+  isDue(now: Date = new Date()): boolean {
     return this.status === STATUSES.SCHEDULED && this.scheduledDateTime.getTime() <= now.getTime();
   }
 
-  _assertScheduled(action) {
+  private _assertScheduled(action: string): void {
     if (this.status !== STATUSES.SCHEDULED) {
-      const err = new Error(`cannot ${action} a notification that is already ${this.status}`);
+      const err: DomainError = new Error(`cannot ${action} a notification that is already ${this.status}`);
       err.code = 'INVALID_TRANSITION';
       throw err;
     }
@@ -71,3 +117,4 @@ class Notification {
 }
 
 module.exports = { Notification };
+export type { Notification };

@@ -1,15 +1,21 @@
-const { STATUSES } = require('../domain/notification-status');
+const { STATUSES } = require('../domain/notification-status.ts');
+import type { LegacyNotificationEntry, LegacyScheduledEntry, NotificationRecord } from '../../../store.ts';
+
+interface MigrateArgs {
+  legacyNotifications: LegacyNotificationEntry[];
+  legacyScheduled: LegacyScheduledEntry[];
+}
 
 // One-time translation of the pre-refactor data/notifications.json (immediate
 // sends) + data/scheduled.json (scheduled sends) into the merged Notification
 // record shape. Called once by JsonNotificationRepository, only when
 // notification-records.json has never been written.
-function migrateLegacyNotificationFiles({ legacyNotifications, legacyScheduled }) {
-  const records = [];
+function migrateLegacyNotificationFiles({ legacyNotifications, legacyScheduled }: MigrateArgs): NotificationRecord[] {
+  const records: NotificationRecord[] = [];
 
   for (const entry of legacyScheduled) {
-    let status;
-    let failureReason = null;
+    let status: string;
+    let failureReason: string | null = null;
     switch (entry.status) {
       case 'pending':
       case 'sending': // leftover concurrency-guard state; safe to re-claim as still due

@@ -1,9 +1,34 @@
 # Architecture — how this application grows
 
 This document is the standing rule for how new capability gets added to this
-app. It doesn't describe a context that exists yet — [`notification-delivery-model.md`](notification-delivery-model.md)
-is the first (and so far only) doc written to this standard. Write new bounded
-contexts to match it.
+app. [`notification-delivery-model.md`](notification-delivery-model.md) is the
+first bounded context written to this standard, and is implemented. Write new
+bounded contexts to match it.
+
+## Language & runtime
+
+Backend code is TypeScript, run directly with `node --experimental-strip-types`
+— no build step, no `typescript` package, no `tsconfig.json`. Node only
+*erases* type syntax; it doesn't transform code, so avoid constructs that
+require real transformation:
+
+- No `enum` — use a `const`-object + derived union type instead (see
+  `notification-status.ts` for the pattern).
+- No `namespace`.
+- No constructor parameter properties (`constructor(private x: T)`) — declare
+  the field and assign it in the constructor body instead.
+
+Interfaces, type aliases, generics, `private`/`public`/`readonly` modifiers on
+already-declared members, and `import type`/`export type` are all pure
+erasure and fine anywhere, including inside otherwise-CommonJS files.
+
+Relative `require()`/`import` specifiers must include the literal `.ts`
+extension — Node does not auto-resolve it the way it does for `.js`:
+`require('../domain/recipient.ts')`, not `require('../domain/recipient')`.
+
+The browser-side code under `public/` stays plain JavaScript — there's no
+type-stripping runtime in a browser, and adding a bundler/build step to get
+one there would contradict "no build step."
 
 ## Folder architecture
 
@@ -12,9 +37,9 @@ src/
   <bounded-context>/              # one per bounded context, e.g. notification-delivery/
     domain/                       # entities, value objects — zero framework/library imports
     application/
-      ports.js                    # repository/gateway interfaces, defined here (not domain/)
-      <use-case>.js                 # one file per operation
-    infrastructure/                # adapters implementing application/ports.js
+      ports.ts                    # repository/gateway interfaces, defined here (not domain/)
+      <use-case>.ts                 # one file per operation
+    infrastructure/                # adapters implementing application/ports.ts
     interface/                     # controllers — thin, translate delivery mechanism <-> use case
   shared-kernel/                   # only created the day two contexts provably need the
                                     # same concept — do not scaffold this speculatively
@@ -34,7 +59,7 @@ Rules that go with the tree:
 - **One context never reaches into another context's `infrastructure/` or
   `interface/`.** Cross-context calls go through the target context's
   `application/` use cases only — that's the whole interface it exposes.
-- **`server.js` (or its equivalent) is composition root only.** It constructs
+- **`server.ts` (or its equivalent) is composition root only.** It constructs
   infrastructure adapters, injects them into use cases, mounts each context's
   `interface/` routes, and starts listening. It contains no business logic of
   its own.

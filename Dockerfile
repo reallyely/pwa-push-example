@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
@@ -9,4 +9,4 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["node", "server.js"]
+CMD ["node", "--experimental-strip-types", "server.ts"]
