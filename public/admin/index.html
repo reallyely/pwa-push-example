@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin — Push Demo</title>
+<link rel="stylesheet" href="/admin/style.css" />
+</head>
+<body>
+<main>
+  <h1>Admin Dashboard</h1>
+  <p>Select a registered user and send them a push notification.</p>
+
+  <form id="send-form">
+    <label for="user-select">User</label>
+    <select id="user-select" required></select>
+
+    <label for="title">Title</label>
+    <input id="title" type="text" value="Demo notification" required />
+
+    <label for="body">Message</label>
+    <input id="body" type="text" placeholder="Hello from the admin dashboard" />
+
+    <label for="icon">Icon URL (optional)</label>
+    <input id="icon" type="text" placeholder="https://example.com/icon.png" />
+
+    <button type="submit">Send Push</button>
+  </form>
+
+  <p id="status"></p>
+</main>
+<script src="/admin/app.js"></script>
+</body>
+</html>
