@@ -1,0 +1,30 @@
+name: Scheduled notification cron
+
+# Fly.io scales this app's machine to zero when idle and only wakes it on an
+# incoming HTTP request (see fly.toml: auto_stop_machines/auto_start_machines).
+# Fly's own machine scheduling only supports recurring hourly/daily/monthly
+# buckets, not an arbitrary one-off time a user picks in the admin UI, so this
+# workflow is what actually wakes the machine and checks for due scheduled
+# notifications. GitHub's cron scheduler is best-effort and can lag a few
+# minutes under load; that's an acceptable tradeoff for this demo.
+on:
+  schedule:
+    - cron: '* * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit /api/cron/tick
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "Set the APP_URL repository variable to your deployed app's base URL (e.g. https://pwa-test.fly.dev)." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/tick"

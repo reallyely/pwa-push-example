@@ -4,12 +4,14 @@ A live version of this app is available https://pwa-test.fly.dev/
 
 Minimal demo: an installable PWA client that registers a username and subscribes to
 push notifications, an admin dashboard that can send a push to a specific user, and
-one Express server backing both. Storage is in-memory only — restarting the server
-clears registered users/subscriptions, which is fine for this throwaway demo.
+one Express server backing both. Registered users/subscriptions are persisted to a
+JSON file on disk (see [Persistence](#persistence) below), so they survive server
+restarts and redeploys.
 
 - Client app: `/` — register a username, grant notification permission, install to
   home screen.
-- Admin dashboard: `/admin` — pick a registered user, send them a push.
+- Admin dashboard: `/admin` — pick a registered user, send them a push immediately or
+  schedule one for a future date/time (see [Scheduled notifications](#scheduled-notifications)).
 
 
 ---
@@ -31,6 +33,52 @@ counts as a secure context, so push works there without HTTPS). Open
 To test **installing on a phone** and receiving pushes with the app closed, you need
 a real HTTPS URL reachable from the phone — see Deploy below.
 
+## Persistence
+
+Registered users and their push subscriptions are stored in `users.json` inside a
+data directory (`./data` locally, configurable via the `DATA_DIR` env var — Fly sets
+this to `/data`, a mounted volume). The file is rewritten on every registration,
+subscribe, resubscribe, and subscription-expiry event, and reloaded on startup, so
+data survives process restarts and redeploys. It's a plain JSON file rather than a
+database — fine for this demo's scale (a handful of users); a real deployment with
+concurrent writers would want an actual database.
+
+The local `./data` directory is gitignored — delete it any time to reset to a clean
+slate.
+
+## Scheduled notifications
+
+The admin dashboard's "Schedule for later" checkbox lets you pick a future date/time
+instead of sending immediately. Scheduled entries are stored in `scheduled.json`
+(same `DATA_DIR` as the other data files) with a `pending` status until they're sent,
+canceled, or fail.
+
+The tricky part: `fly.toml` sets `auto_stop_machines = 'stop'` / `min_machines_running
+= 0`, so Fly stops this app's machine when it's been idle, and only restarts it when a
+new HTTP request comes in. A plain in-process `setTimeout` can't fire while the machine
+is stopped — and Fly's own machine scheduling only supports recurring hourly/daily/
+monthly buckets, not an arbitrary one-off timestamp a user picked in the UI. So instead:
+
+- `GET /api/cron/tick` checks for any `pending` scheduled notification whose time has
+  come and sends it (via the same code path as an immediate send). It's meant to be
+  hit by an external scheduler roughly once a minute — any HTTP request wakes a
+  stopped Fly machine, which is what actually lets a scheduled send fire on time.
+- [`.github/workflows/cron.yml`](.github/workflows/cron.yml) is that external
+  scheduler: a GitHub Actions workflow on a `* * * * *` cron that curls
+  `/api/cron/tick` every minute. To enable it on your fork/repo:
+  1. Repo → Settings → Secrets and variables → Actions → **Variables** tab → add
+     `APP_URL` = your deployed app's base URL (e.g. `https://pwa-test.fly.dev`).
+  2. Optionally set the `CRON_SECRET` **secret** (Secrets tab) to a random string and
+     also set it as a Fly secret (`flyctl secrets set CRON_SECRET=...`) — the endpoint
+     then rejects tick requests missing a matching `x-cron-secret` header. If unset,
+     the endpoint is open, which is fine for this demo but worth locking down before
+     using this pattern for anything sensitive.
+  3. GitHub Actions cron is best-effort and can lag a few minutes under load, so
+     scheduled sends fire on a roughly-1-minute precision, not to the second.
+- On every boot the server also runs a catch-up sweep immediately, so anything that
+  came due while the machine happened to be stopped (e.g. the cron ping itself is what
+  wakes it) gets sent right away rather than waiting for the next tick.
+
 ## VAPID keys
 
 Push requires a VAPID keypair (identifies this server to the browser's push service).
@@ -51,8 +99,8 @@ VAPID_SUBJECT=mailto:you@example.com
 
 ## Deploy (Fly.io)
 
-Fly runs this as a persistent container (required here, since user data lives in
-memory — serverless/edge platforms would reset it on every request and won't work
+Fly runs this as a persistent container (required here, since user data is stored on
+local disk — serverless/edge platforms would reset it on every request and won't work
 for this demo). `flyctl` is already installed at `~/.fly/bin/flyctl` (add it to your
 PATH: `export PATH="$HOME/.fly/bin:$PATH"`).
 
@@ -66,7 +114,13 @@ PATH: `export PATH="$HOME/.fly/bin:$PATH"`).
    ```bash
    flyctl launch --no-deploy
    ```
-3. **Set secrets** (never commit real VAPID keys — `.env` is gitignored and is only
+3. **Create the data volume** (one-time; `fly.toml` mounts it at `/data`, which is
+   where registered users/subscriptions persist — see [Persistence](#persistence)).
+   Use the same region as `primary_region` in `fly.toml`:
+   ```bash
+   flyctl volumes create pwa_data --region iad --size 1
+   ```
+4. **Set secrets** (never commit real VAPID keys — `.env` is gitignored and is only
    used for local dev):
    ```bash
    flyctl secrets set \
@@ -74,16 +128,19 @@ PATH: `export PATH="$HOME/.fly/bin:$PATH"`).
      VAPID_PRIVATE_KEY="$(grep VAPID_PRIVATE_KEY .env | cut -d= -f2)" \
      VAPID_SUBJECT="mailto:you@example.com"
    ```
-4. **Deploy**:
+5. **Deploy**:
    ```bash
    flyctl deploy
    ```
-5. Fly gives you a `https://<app-name>.fly.dev` URL — HTTPS by default, which is what
+6. Fly gives you a `https://<app-name>.fly.dev` URL — HTTPS by default, which is what
    makes it installable and push-capable on a phone.
-6. `fly.toml` (generated in step 2) sets `internal_port = 8080` to match the
-   Dockerfile. If Fly's free allowance auto-stops the machine after inactivity, the
-   next request wakes it up but wipes in-memory users — you'll need to re-register
-   on the client after a cold start.
+7. `fly.toml` sets `internal_port = 8080` to match the Dockerfile. If Fly's free
+   allowance auto-stops the machine after inactivity, the next request wakes it up —
+   registered users are unaffected since they're read from the mounted volume, not
+   memory.
+8. To make scheduled notifications actually fire while the machine can be asleep, set
+   up the GitHub Actions cron pinger — see
+   [Scheduled notifications](#scheduled-notifications).
 
 ## Phone test checklist
 
