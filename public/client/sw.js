@@ -18,18 +18,25 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: data.icon || '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
+    data: data.data,
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  const notificationId = event.notification.data && event.notification.data.notificationId;
+  const targetUrl = `/notification.html?id=${notificationId}`;
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window' }).then((clientList) => {
       for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+        if ('navigate' in client && 'focus' in client) {
+          return client.navigate(targetUrl).then(() => client.focus());
+        }
       }
-      if (self.clients.openWindow) return self.clients.openWindow('/');
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
     })
   );
 });

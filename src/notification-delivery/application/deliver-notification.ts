@@ -35,6 +35,7 @@ export function makeDeliverNotification({ notificationRepository, recipientRepos
       title: notification.title,
       body: notification.description,
       icon: notification.icon || undefined,
+      data: { notificationId: notification.id },
     });
 
     const result = await pushGateway.send(recipient.pushSubscription, payload);
