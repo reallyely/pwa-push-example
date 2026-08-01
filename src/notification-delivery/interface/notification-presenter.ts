@@ -1,5 +1,5 @@
-import type { Notification } from '#notification-delivery/domain/notification.ts';
-import type { DeliverNotificationResponse } from '#notification-delivery/application/deliver-notification.ts';
+import type { Notification } from '#notification-delivery/domain/notification.js';
+import type { DeliverNotificationResponse } from '#notification-delivery/application/deliver-notification.js';
 
 export interface NotificationView {
   id: string;

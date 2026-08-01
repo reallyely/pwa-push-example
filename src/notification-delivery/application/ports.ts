@@ -1,5 +1,7 @@
-import type { Recipient, PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
-import type { Notification } from '#notification-delivery/domain/notification.ts';
+import type { Recipient, PushSubscriptionJSON } from '#notification-delivery/domain/recipient.js';
+import type { Notification } from '#notification-delivery/domain/notification.js';
+
+export const RECIPIENT_REPOSITORY = Symbol('RecipientRepository');
 
 export interface RecipientRepository {
   findByUsername(username: string): Promise<Recipient | null>;
@@ -7,6 +9,8 @@ export interface RecipientRepository {
   findAll(): Promise<Recipient[]>;
   save(recipient: Recipient): Promise<void>;
 }
+
+export const NOTIFICATION_REPOSITORY = Symbol('NotificationRepository');
 
 export interface NotificationRepository {
   findById(id: string): Promise<Notification | null>;
@@ -24,7 +28,15 @@ export type PushGatewayResult =
   | { ok: true }
   | { ok: false; reason: 'subscription-expired' | 'send-failed' };
 
+export const PUSH_GATEWAY = Symbol('PushGateway');
+
 export interface PushGateway {
   // Never throws/leaks the underlying library's error shape past this port.
   send(pushSubscription: PushSubscriptionJSON, payload: string): Promise<PushGatewayResult>;
 }
+
+// DI seam for id generation — a plain value (not really a "port" the way a
+// repository/gateway is), colocated here since it's the natural place other
+// application classes' constructors pull it in from.
+export const GENERATE_ID = Symbol('GenerateId');
+export type GenerateId = () => string;

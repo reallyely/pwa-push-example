@@ -1,5 +1,5 @@
-import { STATUSES } from './notification-status.ts';
-import type { NotificationStatus } from './notification-status.ts';
+import { STATUSES } from './notification-status.js';
+import type { NotificationStatus } from './notification-status.js';
 
 interface NotificationProps {
   id: string;

@@ -1,20 +1,23 @@
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import webpush from 'web-push';
-import type { PushGateway, PushGatewayResult } from '#notification-delivery/application/ports.ts';
-import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
-
-interface WebPushConfig {
-  vapidSubject: string;
-  vapidPublicKey: string;
-  vapidPrivateKey: string;
-}
+import type { PushGateway, PushGatewayResult } from '#notification-delivery/application/ports.js';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.js';
 
 interface WebPushError extends Error {
   statusCode?: number;
 }
 
-export class WebPushGateway implements PushGateway {
-  constructor({ vapidSubject, vapidPublicKey, vapidPrivateKey }: WebPushConfig) {
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+@Injectable()
+export class WebPushGateway implements PushGateway, OnModuleInit {
+  constructor(private configService: ConfigService) {}
+
+  onModuleInit(): void {
+    webpush.setVapidDetails(
+      this.configService.getOrThrow('VAPID_SUBJECT'),
+      this.configService.getOrThrow('VAPID_PUBLIC_KEY'),
+      this.configService.getOrThrow('VAPID_PRIVATE_KEY'),
+    );
   }
 
   async send(pushSubscription: PushSubscriptionJSON, payload: string): Promise<PushGatewayResult> {

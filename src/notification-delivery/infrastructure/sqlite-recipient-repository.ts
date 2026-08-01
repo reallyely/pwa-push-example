@@ -1,7 +1,8 @@
+import { Injectable } from '@nestjs/common';
 import { getDb } from '#sqlite';
-import { Recipient } from '#notification-delivery/domain/recipient.ts';
-import type { PushSubscriptionJSON, Recipient as RecipientEntity } from '#notification-delivery/domain/recipient.ts';
-import type { RecipientRepository } from '#notification-delivery/application/ports.ts';
+import { Recipient } from '#notification-delivery/domain/recipient.js';
+import type { PushSubscriptionJSON, Recipient as RecipientEntity } from '#notification-delivery/domain/recipient.js';
+import type { RecipientRepository } from '#notification-delivery/application/ports.js';
 
 export interface RecipientRecord {
   subscription: PushSubscriptionJSON | null;
@@ -20,6 +21,7 @@ function rowToRecord(row: RecipientRow): RecipientRecord {
   return { subscription: row.subscription ? JSON.parse(row.subscription) : null };
 }
 
+@Injectable()
 export class SqliteRecipientRepository implements RecipientRepository {
   private db = getDb();
 
@@ -38,7 +40,7 @@ export class SqliteRecipientRepository implements RecipientRepository {
   }
 
   async findByEndpoint(endpoint: string): Promise<RecipientEntity | null> {
-    const rows = this.db.prepare(`SELECT username, subscription FROM recipients WHERE subscription IS NOT NULL`).all() as RecipientRow[];
+    const rows = this.db.prepare(`SELECT username, subscription FROM recipients WHERE subscription IS NOT NULL`).all() as unknown as RecipientRow[];
     for (const row of rows) {
       const record = rowToRecord(row);
       if (record.subscription && record.subscription.endpoint === endpoint) {
@@ -49,7 +51,7 @@ export class SqliteRecipientRepository implements RecipientRepository {
   }
 
   async findAll(): Promise<RecipientEntity[]> {
-    const rows = this.db.prepare(`SELECT username, subscription FROM recipients`).all() as RecipientRow[];
+    const rows = this.db.prepare(`SELECT username, subscription FROM recipients`).all() as unknown as RecipientRow[];
     return rows.map((row) => toEntity(row.username, rowToRecord(row)));
   }
 

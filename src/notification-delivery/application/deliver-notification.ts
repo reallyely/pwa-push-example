@@ -1,12 +1,4 @@
-import type { RecipientRepository, NotificationRepository, PushGateway } from './ports.ts';
-import { notificationDeliveryError } from './errors.ts';
-
-interface Deps {
-  notificationRepository: NotificationRepository;
-  recipientRepository: RecipientRepository;
-  pushGateway: PushGateway;
-  now?: () => Date;
-}
+import type { RecipientRepository, NotificationRepository, PushGateway } from './ports.js';
 
 interface DeliverNotificationRequest {
   notificationId: string;
@@ -17,17 +9,26 @@ export interface DeliverNotificationResponse {
   reason?: string | null;
 }
 
-export function makeDeliverNotification({ notificationRepository, recipientRepository, pushGateway, now = () => new Date() }: Deps) {
-  return async function deliverNotification({ notificationId }: DeliverNotificationRequest): Promise<DeliverNotificationResponse> {
-    const notification = await notificationRepository.findById(notificationId);
+export class DeliverNotification {
+  constructor(
+    private notificationRepository: NotificationRepository,
+    private recipientRepository: RecipientRepository,
+    private pushGateway: PushGateway,
+    private now: () => Date = () => new Date(),
+  ) {}
+
+  async execute({ notificationId }: DeliverNotificationRequest): Promise<DeliverNotificationResponse> {
+    const notification = await this.notificationRepository.findById(notificationId);
     if (!notification) {
-      throw notificationDeliveryError('no such notification', 'NOT_FOUND');
+      const err: Error & { code?: string } = new Error('no such notification');
+      err.code = 'NOT_FOUND';
+      throw err;
     }
 
-    const recipient = await recipientRepository.findByUsername(notification.recipientId);
+    const recipient = await this.recipientRepository.findByUsername(notification.recipientId);
     if (!recipient || !recipient.pushSubscription) {
       notification.markFailed('no-active-subscription');
-      await notificationRepository.save(notification);
+      await this.notificationRepository.save(notification);
       return { status: notification.status, reason: notification.failureReason };
     }
 
@@ -38,18 +39,18 @@ export function makeDeliverNotification({ notificationRepository, recipientRepos
       data: { notificationId: notification.id },
     });
 
-    const result = await pushGateway.send(recipient.pushSubscription, payload);
+    const result = await this.pushGateway.send(recipient.pushSubscription, payload);
 
     if (result.ok) {
-      notification.markSent(now());
+      notification.markSent(this.now());
     } else if (result.reason === 'subscription-expired') {
       recipient.clearSubscription();
-      await recipientRepository.save(recipient);
+      await this.recipientRepository.save(recipient);
       notification.markFailed('subscription-expired');
     } else {
       notification.markFailed(result.reason || 'send-failed');
     }
-    await notificationRepository.save(notification);
+    await this.notificationRepository.save(notification);
     return { status: notification.status, reason: notification.failureReason };
-  };
+  }
 }

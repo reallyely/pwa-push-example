@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { STATUSES, ALL, isValid } from './notification-status.ts';
+import { STATUSES, ALL, isValid } from './notification-status.js';
 
 describe('notification-status', () => {
   test('ALL contains exactly the known statuses', () => {

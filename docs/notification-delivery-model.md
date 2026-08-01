@@ -115,8 +115,9 @@ only ever iterates what `claimDueNotifications` handed it.
 
 ## Target layering
 
-Implemented, as TypeScript run directly via `node --experimental-strip-types`
-(see [`architecture.md`](../architecture.md) — no build step, no `tsconfig.json`):
+Implemented as TypeScript compiled via `tsc` and run as NestJS (see
+[`architecture.md`](../architecture.md) for why the build step exists and
+which files are allowed to import `@nestjs/*`):
 
 ```
 src/notification-delivery/
@@ -125,31 +126,56 @@ src/notification-delivery/
     notification.ts            # entity: schedule/cancel/markSent/markFailed, guards transitions
     notification-status.ts     # value object: Scheduled | Sent | Failed | Cancelled
   application/
-    ports.ts                    # RecipientRepository, NotificationRepository, PushGateway (interfaces)
+    ports.ts                    # RecipientRepository, NotificationRepository, PushGateway
+                                 # (interfaces) + their DI Symbol tokens (RECIPIENT_REPOSITORY,
+                                 # NOTIFICATION_REPOSITORY, PUSH_GATEWAY, GENERATE_ID)
     errors.ts                   # NotificationDeliveryError — this context's coded-error shape,
                                  # thrown by use cases and (re-)thrown from domain guards, mapped
-                                 # to HTTP status by interface/http-errors.ts
-    register-recipient.ts       # idempotent: create Recipient if username unknown
-    subscribe-recipient.ts      # attach a push subscription to a known Recipient
-    resubscribe-recipient.ts    # re-key a subscription found by its old endpoint
-    list-recipients.ts          # for the admin dashboard's user picker
-    schedule-notification.ts
-    cancel-scheduled-notification.ts
-    get-notification.ts         # single-notification read, by id — 404 (NOT_FOUND) if unknown
-    deliver-notification.ts     # calls PushGateway, reacts to result, calls entity transitions
-    run-due-notifications.ts    # claims due Scheduled notifications, delegates to deliver-notification
-    list-notifications.ts       # filtered read: status != Scheduled, or status == Scheduled
+                                 # to HTTP status by interface/notification-delivery-exception.filter.ts
+    register-recipient.ts       # RegisterRecipient — idempotent: create Recipient if username unknown
+    subscribe-recipient.ts      # SubscribeRecipient — attach a push subscription to a known Recipient
+    resubscribe-recipient.ts    # ResubscribeRecipient — re-key a subscription found by its old endpoint
+    list-recipients.ts          # ListRecipients — for the admin dashboard's user picker
+    schedule-notification.ts    # ScheduleNotification
+    cancel-scheduled-notification.ts   # CancelScheduledNotification
+    get-notification.ts         # GetNotification — single-notification read, by id — 404 (NOT_FOUND) if unknown
+    deliver-notification.ts     # DeliverNotification — calls PushGateway, reacts to result, calls entity transitions
+    run-due-notifications.ts    # RunDueNotifications — claims due Scheduled notifications, delegates to DeliverNotification
+    list-notifications.ts       # ListNotifications — filtered read: status != Scheduled, or status == Scheduled
+                                 # Each file above exports one plain class with a single
+                                 # execute(request) method (the Clean Architecture
+                                 # "Interactor" shape) — zero @nestjs/* imports. Constructed
+                                 # by notification-delivery.module.ts via useFactory, never
+                                 # auto-wired by Nest's decorator scanning.
   infrastructure/
-    sqlite-recipient-repository.ts     # implements RecipientRepository; owns RecipientRecord + the recipients table
-    sqlite-notification-repository.ts  # implements NotificationRepository; owns NotificationRecord + the notifications table
-    web-push-gateway.ts               # implements PushGateway — only file importing 'web-push'
+    sqlite-recipient-repository.ts     # @Injectable(); implements RecipientRepository; owns RecipientRecord + the recipients table
+    sqlite-notification-repository.ts  # @Injectable(); implements NotificationRepository; owns NotificationRecord + the notifications table
+    web-push-gateway.ts               # @Injectable(); implements PushGateway — only file importing 'web-push';
+                                       # injects Nest's ConfigService for the VAPID_* env vars,
+                                       # calls webpush.setVapidDetails from onModuleInit()
   interface/
-    http-routes.ts              # Express routes — thin controllers calling application/ use cases
-    notification-presenter.ts   # pure: domain Notification -> wire NotificationView, deliver result -> HTTP outcome
-    http-errors.ts               # error-code -> HTTP-status mapping, sendError (imports
-                                 # NotificationDeliveryError from application/errors.ts rather
-                                 # than owning the type — it doesn't originate the error, only
-                                 # translates its .code to an HTTP status)
+    recipients.controller.ts     # @Controller('api') — vapid-public-key, register, subscribe,
+                                  # resubscribe, users
+    notifications.controller.ts  # @Controller('api') — send, notifications, notifications/:id,
+                                  # schedule, scheduled, scheduled/:id, cron/tick
+    notification-scheduler.ts    # @Injectable() NotificationScheduler — OnApplicationBootstrap
+                                  # runs a startup catch-up sweep, @Interval(60_000) repeats it;
+                                  # this context's non-HTTP "interface adapter" (delivery
+                                  # mechanism = the clock) for run-due-notifications.ts
+    notification-presenter.ts    # pure: domain Notification -> wire NotificationView, deliver
+                                  # result -> HTTP outcome (unchanged by the Nest conversion —
+                                  # was already framework-free)
+    notification-delivery-exception.filter.ts   # @Catch() ExceptionFilter, scoped to this
+                                  # context's controllers via @UseFilters() (not global) —
+                                  # error-code -> HTTP-status mapping, imports
+                                  # NotificationDeliveryError from application/errors.ts rather
+                                  # than owning the type — it doesn't originate the error, only
+                                  # translates its .code to an HTTP status
+  notification-delivery.module.ts  # this context's slice of the composition root: a Nest
+                                    # @Module whose providers array wires infrastructure
+                                    # adapters (useClass) and use-case classes (useFactory,
+                                    # each keyed by the class itself as its own DI token) into
+                                    # the controllers/scheduler above
 ```
 
 `src/infrastructure/sqlite.ts` is this context's persistence layer's **generic
@@ -159,15 +185,23 @@ connection to `DATA_DIR/app.db` (the Fly volume already mounted for this app),
 and declares no type for `Recipient`, `Notification`, or any other entity.
 Those record/DTO shapes, table schemas, and `CREATE TABLE` statements are
 owned by this context's own `infrastructure/` files above, which are the only
-callers of `sqlite.ts` (via the `#sqlite` import alias).
+callers of `sqlite.ts` (via the `#sqlite` import alias), calling `getDb()`
+directly in their constructors rather than receiving it through Nest's DI —
+an existing design predating the Nest conversion, left as-is.
 
-`server.ts` is wiring only: construct infrastructure adapters, inject into
-application use cases, mount `interface/http-routes.ts`, listen.
+`src/main.ts` + `src/app.module.ts` (composition root, shared by every
+context) + `notification-delivery.module.ts` (this context's slice) are
+wiring only: construct infrastructure adapters, inject into application use
+cases, mount the two controllers above, listen.
 
 `ports.ts` lives in `application/`, not `domain/` — per [`architecture.md`](../architecture.md),
 a repository/gateway interface is shaped by what this application needs to
 persist or deliver, not an Enterprise Business Rule the entities would carry
-regardless of the software.
+regardless of the software. Its DI tokens are colocated there too, since a
+`Symbol` naming an interface has no runtime existence otherwise and is the
+natural companion to the interface it identifies — this is a plain value, not
+a framework import, so it doesn't compromise `application/`'s framework-free
+rule.
 
 ## Use case boundaries (Request/Response shapes)
 

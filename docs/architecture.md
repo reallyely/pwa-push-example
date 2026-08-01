@@ -7,47 +7,74 @@ new bounded contexts to match it.
 
 ## Language & runtime
 
-Backend code is TypeScript, run directly with `node --experimental-strip-types`
-— no build step, no `typescript` package, no `tsconfig.json`. Node only
-*erases* type syntax; it doesn't transform code, so avoid constructs that
-require real transformation:
+Backend code is TypeScript, compiled with `tsc` (`tsconfig.json` at the repo
+root: `module`/`moduleResolution: NodeNext`, `target: ES2022`,
+`experimentalDecorators`/`emitDecoratorMetadata: true`) to `dist/`, and run
+with plain `node dist/main.js`. This build step exists for exactly one
+reason: NestJS's dependency-injection container needs `emitDecoratorMetadata`
+to read constructor parameter types at runtime, and that requires a real
+compile — Node's `--experimental-strip-types` only erases type syntax
+character-for-character, it never transforms code, so it can't produce
+decorator metadata. Every bounded context depends on `tsc` for this reason;
+none should reach for a heavier build tool (bundler, `@nestjs/cli`, etc.)
+without a new reason forcing it.
 
-- No `enum` — use a `const`-object + derived union type instead (see
-  `notification-status.ts` for the pattern).
-- No `namespace`.
-- No constructor parameter properties (`constructor(private x: T)`) — declare
-  the field and assign it in the constructor body instead.
+Because a real compiler is now in the toolchain, the erasure-only
+restrictions this section used to list (no `enum`, no `namespace`, no
+constructor parameter properties) no longer apply — write whichever of these
+reads best. `domain/` and `application/` (see below) still don't use them
+just because they're available; they weren't rewritten when the restriction
+lifted, since there was no benefit to the churn.
 
-Interfaces, type aliases, generics, `private`/`public`/`readonly` modifiers on
-already-declared members, and `import type`/`export type` are all pure
-erasure and fine anywhere, including inside otherwise-CommonJS files.
+Relative and `#`-prefixed subpath import specifiers must reference the
+extension the *compiled* file will have (`.js`), not the source file's own
+extension (`.ts`) — `tsc` copies import strings into its output verbatim
+rather than rewriting them, so a source file has to already say `.js` for the
+compiled `.js` file to resolve it: `import { Recipient } from
+'./recipient.js'`, even though the file on disk is `recipient.ts`. This is
+the standard `NodeNext` module-resolution convention, not something specific
+to this repo.
 
-Relative `require()`/`import` specifiers must include the literal `.ts`
-extension — Node does not auto-resolve it the way it does for `.js`:
-`require('../domain/recipient.ts')`, not `require('../domain/recipient')`.
-
-The browser-side code under `public/` stays plain JavaScript — there's no
-type-stripping runtime in a browser, and adding a bundler/build step to get
-one there would contradict "no build step."
+The browser-side code under `public/` stays plain JavaScript — no bundler
+runs over it; the build step above only ever compiles `src/`.
 
 ## Folder architecture
 
 ```
 src/
-  <bounded-context>/              # one per bounded context, e.g. notification-delivery/
-    domain/                       # entities, value objects — zero framework/library imports
+  main.ts                          # composition root entrypoint: bootstrap Nest, static
+                                    # assets, listen. No business logic.
+  app.module.ts                    # root Nest module: imports ConfigModule/ScheduleModule
+                                    # and every bounded context's <context>.module.ts
+  <bounded-context>/                # one per bounded context, e.g. notification-delivery/
+    domain/                        # entities, value objects — zero framework/library imports,
+                                    # including zero @nestjs/* imports
     application/
-      ports.ts                    # repository/gateway interfaces, defined here (not domain/)
-      <use-case>.ts                 # one file per operation
-    infrastructure/                # adapters implementing application/ports.ts
-    interface/                     # controllers — thin, translate delivery mechanism <-> use case
-  shared-kernel/                   # only created the day two contexts provably need the
-                                    # same domain concept — do not scaffold this speculatively
-  infrastructure/                  # generic technical infrastructure with zero domain knowledge —
-                                    # e.g. sqlite.ts (shared DatabaseSync connection to
-                                    # DATA_DIR/app.db). Owns no entity/record types and no
-                                    # context-specific filenames/table schemas; those belong to the
-                                    # bounded context's own infrastructure/ adapter that calls in here
+      ports.ts                     # repository/gateway interfaces + their DI Symbol tokens,
+                                    # defined here (not domain/)
+      <use-case>.ts                  # one file per operation, a plain class with an execute()
+                                    # method (Clean Architecture "Interactor") — zero
+                                    # @nestjs/* imports; Nest only ever calls into these,
+                                    # never decorates them
+    infrastructure/                 # adapters implementing application/ports.ts, as real
+                                    # @Injectable() Nest providers — this is the "Frameworks &
+                                    # Drivers" ring, where framework awareness belongs
+    interface/                      # the delivery-mechanism layer, and the only place besides
+                                    # the composition root that imports @nestjs/*: thin
+                                    # @Controller()s, an @Injectable() scheduler if the context
+                                    # has time-based triggers, an @Catch() exception filter —
+                                    # each translates its delivery mechanism <-> a use case
+    <context>.module.ts             # this context's slice of the composition root: a Nest
+                                    # @Module wiring infrastructure providers (useClass) and
+                                    # use-case classes (useFactory, keyed by the class itself
+                                    # as its own DI token) into the controllers/scheduler above
+  shared-kernel/                    # only created the day two contexts provably need the
+                                     # same domain concept — do not scaffold this speculatively
+  infrastructure/                   # generic technical infrastructure with zero domain knowledge —
+                                     # e.g. sqlite.ts (shared DatabaseSync connection to
+                                     # DATA_DIR/app.db). Owns no entity/record types and no
+                                     # context-specific filenames/table schemas; those belong to the
+                                     # bounded context's own infrastructure/ adapter that calls in here
 ```
 
 Rules that go with the tree:
@@ -57,6 +84,14 @@ Rules that go with the tree:
   that's a Use Case concern, not an Enterprise Business Rule an entity would
   carry regardless of the software. Keep `domain/` free of anything that only
   exists because of infrastructure.
+- **`domain/` and `application/` never import `@nestjs/*` (or any other
+  framework), full stop** — not even a `Symbol` token defined by Nest. This is
+  stricter than the general Dependency Rule below: it's what keeps the DI
+  framework choice from leaking into business logic. Use-case classes are
+  plain, independently constructible and testable with `new`; NestJS's role
+  is limited to *calling* them, via the `useFactory` wiring in each context's
+  `<context>.module.ts`, and to the outer `infrastructure/`/`interface/`
+  layers where framework awareness is expected.
 - **Dependencies point inward only.** `infrastructure/` and `interface/` may
   import from `application/` and `domain/`. `application/` may import from
   `domain/`. Nothing in `domain/` or `application/` ever imports a name from
@@ -70,10 +105,12 @@ Rules that go with the tree:
   clients, etc.) that no context owns and every context may depend on. A file
   here must not import from any bounded context's `domain/` or
   `application/` — that dependency only ever runs the other way.
-- **`server.ts` (or its equivalent) is composition root only.** It constructs
-  infrastructure adapters, injects them into use cases, mounts each context's
-  `interface/` routes, and starts listening. It contains no business logic of
-  its own.
+- **`src/main.ts` + `src/app.module.ts` + each context's `<context>.module.ts`
+  together are the composition root.** Between them they construct
+  infrastructure adapters, wire them into use cases, mount each context's
+  controllers, and start listening. None of them contain business logic of
+  their own — a `<context>.module.ts` is wiring (a `providers` array), not a
+  place to put an `if`.
 
 ## Where documentation lives
 

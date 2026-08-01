@@ -1,8 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import { getDb } from '#sqlite';
-import { Notification } from '#notification-delivery/domain/notification.ts';
-import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
-import type { NotificationRepository } from '#notification-delivery/application/ports.ts';
-import type { Notification as NotificationEntity } from '#notification-delivery/domain/notification.ts';
+import { Notification } from '#notification-delivery/domain/notification.js';
+import { STATUSES } from '#notification-delivery/domain/notification-status.js';
+import type { NotificationStatus } from '#notification-delivery/domain/notification-status.js';
+import type { NotificationRepository } from '#notification-delivery/application/ports.js';
+import type { Notification as NotificationEntity } from '#notification-delivery/domain/notification.js';
 
 export interface NotificationRecord {
   id: string;
@@ -24,7 +26,7 @@ function toEntity(record: NotificationRecord): NotificationEntity {
     description: record.description,
     scheduledDateTime: new Date(record.scheduledDateTime),
     icon: record.icon,
-    status: record.status,
+    status: record.status as NotificationStatus,
     sentDateTime: record.sentDateTime ? new Date(record.sentDateTime) : null,
     failureReason: record.failureReason,
   });
@@ -44,6 +46,7 @@ function toRecord(notification: NotificationEntity): NotificationRecord {
   };
 }
 
+@Injectable()
 export class SqliteNotificationRepository implements NotificationRepository {
   private db = getDb();
   // Ids claimed by claimDueNotifications() but not yet saved back with a
@@ -74,7 +77,7 @@ export class SqliteNotificationRepository implements NotificationRepository {
   }
 
   async findAll(): Promise<NotificationEntity[]> {
-    const rows = this.db.prepare(`SELECT * FROM notifications`).all() as NotificationRecord[];
+    const rows = this.db.prepare(`SELECT * FROM notifications`).all() as unknown as NotificationRecord[];
     return rows.map(toEntity);
   }
 
@@ -108,7 +111,7 @@ export class SqliteNotificationRepository implements NotificationRepository {
 
   async claimDueNotifications(now: Date): Promise<NotificationEntity[]> {
     const rows = this.db.prepare(`SELECT * FROM notifications WHERE status = ? AND scheduledDateTime <= ?`)
-      .all(STATUSES.SCHEDULED, now.toISOString()) as NotificationRecord[];
+      .all(STATUSES.SCHEDULED, now.toISOString()) as unknown as NotificationRecord[];
     const due = rows.filter((r) => !this.claimedIds.has(r.id));
     for (const record of due) {
       this.claimedIds.add(record.id);

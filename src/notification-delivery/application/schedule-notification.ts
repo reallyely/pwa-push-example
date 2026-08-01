@@ -1,12 +1,6 @@
-import { Notification } from '#notification-delivery/domain/notification.ts';
-import type { RecipientRepository, NotificationRepository } from './ports.ts';
-import { notificationDeliveryError } from './errors.ts';
-
-interface Deps {
-  recipientRepository: RecipientRepository;
-  notificationRepository: NotificationRepository;
-  generateId: () => string;
-}
+import { Notification } from '#notification-delivery/domain/notification.js';
+import type { RecipientRepository, NotificationRepository, GenerateId } from './ports.js';
+import { notificationDeliveryError } from './errors.js';
 
 interface ScheduleNotificationRequest {
   recipientId: string;
@@ -20,27 +14,33 @@ interface ScheduleNotificationResponse {
   notificationId: string;
 }
 
-export function makeScheduleNotification({ recipientRepository, notificationRepository, generateId }: Deps) {
-  return async function scheduleNotification({
+export class ScheduleNotification {
+  constructor(
+    private recipientRepository: RecipientRepository,
+    private notificationRepository: NotificationRepository,
+    private generateId: GenerateId,
+  ) {}
+
+  async execute({
     recipientId,
     title,
     description,
     scheduledDateTime,
     icon,
   }: ScheduleNotificationRequest): Promise<ScheduleNotificationResponse> {
-    const recipient = await recipientRepository.findByUsername(recipientId);
+    const recipient = await this.recipientRepository.findByUsername(recipientId);
     if (!recipient) {
       throw notificationDeliveryError('unknown username, register first', 'NOT_FOUND');
     }
     const notification = Notification.schedule({
-      id: generateId(),
+      id: this.generateId(),
       recipientId,
       title,
       description,
       scheduledDateTime,
       icon,
     });
-    await notificationRepository.save(notification);
+    await this.notificationRepository.save(notification);
     return { notificationId: notification.id };
-  };
+  }
 }

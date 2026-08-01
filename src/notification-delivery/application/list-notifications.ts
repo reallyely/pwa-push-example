@@ -1,18 +1,16 @@
-import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
-import type { NotificationRepository } from './ports.ts';
-import type { Notification } from '#notification-delivery/domain/notification.ts';
-
-interface Deps {
-  notificationRepository: NotificationRepository;
-}
+import { STATUSES } from '#notification-delivery/domain/notification-status.js';
+import type { NotificationRepository } from './ports.js';
+import type { Notification } from '#notification-delivery/domain/notification.js';
 
 interface ListNotificationsRequest {
   view: 'scheduled' | 'history';
 }
 
-export function makeListNotifications({ notificationRepository }: Deps) {
-  return async function listNotifications({ view }: ListNotificationsRequest): Promise<Notification[]> {
-    const all = await notificationRepository.findAll();
+export class ListNotifications {
+  constructor(private notificationRepository: NotificationRepository) {}
+
+  async execute({ view }: ListNotificationsRequest): Promise<Notification[]> {
+    const all = await this.notificationRepository.findAll();
     if (view === 'scheduled') {
       return all
         .filter((n) => n.status === STATUSES.SCHEDULED)
@@ -25,5 +23,5 @@ export function makeListNotifications({ notificationRepository }: Deps) {
         const bTime = (b.sentDateTime || b.scheduledDateTime).getTime();
         return bTime - aTime;
       });
-  };
+  }
 }

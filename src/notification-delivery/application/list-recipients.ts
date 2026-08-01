@@ -1,17 +1,15 @@
-import type { RecipientRepository } from './ports.ts';
-
-interface Deps {
-  recipientRepository: RecipientRepository;
-}
+import type { RecipientRepository } from './ports.js';
 
 export interface RecipientView {
   username: string;
   subscribed: boolean;
 }
 
-export function makeListRecipients({ recipientRepository }: Deps) {
-  return async function listRecipients(): Promise<RecipientView[]> {
-    const recipients = await recipientRepository.findAll();
+export class ListRecipients {
+  constructor(private recipientRepository: RecipientRepository) {}
+
+  async execute(): Promise<RecipientView[]> {
+    const recipients = await this.recipientRepository.findAll();
     return recipients.map((r) => ({ username: r.username, subscribed: !!r.pushSubscription }));
-  };
+  }
 }

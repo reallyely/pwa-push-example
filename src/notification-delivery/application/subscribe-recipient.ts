@@ -1,19 +1,17 @@
-import type { RecipientRepository } from './ports.ts';
-import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.ts';
-import { notificationDeliveryError } from './errors.ts';
-
-interface Deps {
-  recipientRepository: RecipientRepository;
-}
+import type { RecipientRepository } from './ports.js';
+import type { PushSubscriptionJSON } from '#notification-delivery/domain/recipient.js';
+import { notificationDeliveryError } from './errors.js';
 
 interface SubscribeRecipientRequest {
   username: string;
   subscription: PushSubscriptionJSON;
 }
 
-export function makeSubscribeRecipient({ recipientRepository }: Deps) {
-  return async function subscribeRecipient({ username, subscription }: SubscribeRecipientRequest): Promise<void> {
-    const recipient = await recipientRepository.findByUsername(username);
+export class SubscribeRecipient {
+  constructor(private recipientRepository: RecipientRepository) {}
+
+  async execute({ username, subscription }: SubscribeRecipientRequest): Promise<void> {
+    const recipient = await this.recipientRepository.findByUsername(username);
     if (!recipient) {
       throw notificationDeliveryError('unknown username, register first', 'NOT_FOUND');
     }
@@ -21,6 +19,6 @@ export function makeSubscribeRecipient({ recipientRepository }: Deps) {
       throw notificationDeliveryError('subscription is required', 'INVALID_INPUT');
     }
     recipient.subscribeToPush(subscription);
-    await recipientRepository.save(recipient);
-  };
+    await this.recipientRepository.save(recipient);
+  }
 }

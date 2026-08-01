@@ -4,8 +4,8 @@ A live version of this app is available https://pwa-test.fly.dev/
 
 Minimal demo: an installable PWA client that registers a username and subscribes to
 push notifications, an admin dashboard that can send a push to a specific user, and
-one Express server backing both. Registered users/subscriptions are persisted to a
-JSON file on disk (see [Persistence](#persistence) below), so they survive server
+one NestJS server backing both. Registered users/subscriptions are persisted to
+SQLite on disk (see [Persistence](#persistence) below), so they survive server
 restarts and redeploys.
 
 - Client app: `/` — register a username, grant notification permission, install to

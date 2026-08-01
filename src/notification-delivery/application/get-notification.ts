@@ -1,21 +1,19 @@
-import type { NotificationRepository } from './ports.ts';
-import type { Notification } from '#notification-delivery/domain/notification.ts';
-import { notificationDeliveryError } from './errors.ts';
-
-interface Deps {
-  notificationRepository: NotificationRepository;
-}
+import type { NotificationRepository } from './ports.js';
+import type { Notification } from '#notification-delivery/domain/notification.js';
+import { notificationDeliveryError } from './errors.js';
 
 interface GetNotificationRequest {
   notificationId: string;
 }
 
-export function makeGetNotification({ notificationRepository }: Deps) {
-  return async function getNotification({ notificationId }: GetNotificationRequest): Promise<Notification> {
-    const notification = await notificationRepository.findById(notificationId);
+export class GetNotification {
+  constructor(private notificationRepository: NotificationRepository) {}
+
+  async execute({ notificationId }: GetNotificationRequest): Promise<Notification> {
+    const notification = await this.notificationRepository.findById(notificationId);
     if (!notification) {
       throw notificationDeliveryError('no such notification', 'NOT_FOUND');
     }
     return notification;
-  };
+  }
 }

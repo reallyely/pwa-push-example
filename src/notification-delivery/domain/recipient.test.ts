@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { Recipient } from './recipient.ts';
+import { Recipient } from './recipient.js';
 
 const subscription = { endpoint: 'https://push.example/abc', keys: { p256dh: 'p', auth: 'a' } };
 
