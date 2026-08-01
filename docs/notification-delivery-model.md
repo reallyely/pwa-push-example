@@ -135,6 +135,7 @@ src/notification-delivery/
     list-recipients.ts          # for the admin dashboard's user picker
     schedule-notification.ts
     cancel-scheduled-notification.ts
+    get-notification.ts         # single-notification read, by id — 404 (NOT_FOUND) if unknown
     deliver-notification.ts     # calls PushGateway, reacts to result, calls entity transitions
     run-due-notifications.ts    # claims due Scheduled notifications, delegates to deliver-notification
     list-notifications.ts       # filtered read: status != Scheduled, or status == Scheduled
@@ -185,6 +186,14 @@ handler destructures `req.body` into plain fields before calling `deliverPush`.
   `{ notificationId }` → `void`. Loads the `Notification`, calls `.cancel()`
   (entity rejects if not currently `Scheduled`), saves.
 
+- **`getNotification(request)`**
+  `{ notificationId }` → `Notification`. Loads by id, 404s (`NOT_FOUND`) if
+  unknown. No status filter, unlike `listNotifications` — any notification
+  regardless of state can be read directly by id. Exposed as
+  `GET /api/notifications/:id`, and is what `public/client/notification.html`
+  fetches to render a single notification's detail page (see "Notification
+  click lands on its own detail page" below).
+
 - **`deliverNotification(request)`**
   `{ notificationId }` → `{ status: 'Sent' | 'Failed', reason? }`. Loads the
   `Notification` + its `Recipient`, calls `PushGateway.send(...)`, reacts:
@@ -229,6 +238,18 @@ both as filtered reads over the one `NotificationRepository`:
 
 If the admin UI ever needs a combined view, that's a new endpoint added
 later — not a reason to collapse these two now.
+
+### Notification click lands on its own detail page
+
+`deliverNotification` puts `data: { notificationId: notification.id }` on the
+push payload (alongside `title`/`body`/`icon`), so the browser's service
+worker (`public/client/sw.js`, outside this bounded context — see
+`architecture.md`'s note on browser-side code) receives the id in
+`event.notification.data` and, on `notificationclick`, navigates the client
+to `/notification.html?id=<id>` instead of unconditionally focusing/opening
+the root page. That page is a plain fetch against `GET /api/notifications/:id`
+(`getNotification`, above) — no new backend concept, just a consumer of the
+existing read use case.
 
 ## Relationship to the future Core Domain
 
