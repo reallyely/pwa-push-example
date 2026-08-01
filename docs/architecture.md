@@ -44,8 +44,9 @@ src/
   shared-kernel/                   # only created the day two contexts provably need the
                                     # same domain concept — do not scaffold this speculatively
   infrastructure/                  # generic technical infrastructure with zero domain knowledge —
-                                    # e.g. store.ts (JSON file persistence). Owns no entity/record
-                                    # types and no context-specific filenames; those belong to the
+                                    # e.g. sqlite.ts (shared DatabaseSync connection to
+                                    # DATA_DIR/app.db). Owns no entity/record types and no
+                                    # context-specific filenames/table schemas; those belong to the
                                     # bounded context's own infrastructure/ adapter that calls in here
 ```
 

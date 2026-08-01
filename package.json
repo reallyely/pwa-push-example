@@ -10,7 +10,7 @@
   "keywords": [],
   "type": "module",
   "imports": {
-    "#store": "./src/infrastructure/store.ts",
+    "#sqlite": "./src/infrastructure/sqlite.ts",
     "#notification-delivery/*": "./src/notification-delivery/*"
   },
   "dependencies": {

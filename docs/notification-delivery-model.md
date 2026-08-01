@@ -140,9 +140,8 @@ src/notification-delivery/
     run-due-notifications.ts    # claims due Scheduled notifications, delegates to deliver-notification
     list-notifications.ts       # filtered read: status != Scheduled, or status == Scheduled
   infrastructure/
-    json-recipient-repository.ts     # implements RecipientRepository; owns RecipientRecord + recipients.json
-    json-notification-repository.ts  # implements NotificationRepository; owns NotificationRecord + notification-records.json
-    migrate-legacy-notification-files.ts  # owns LegacyNotificationEntry/LegacyScheduledEntry (pre-refactor shapes)
+    sqlite-recipient-repository.ts     # implements RecipientRepository; owns RecipientRecord + the recipients table
+    sqlite-notification-repository.ts  # implements NotificationRepository; owns NotificationRecord + the notifications table
     web-push-gateway.ts               # implements PushGateway — only file importing 'web-push'
   interface/
     http-routes.ts              # Express routes — thin controllers calling application/ use cases
@@ -153,14 +152,14 @@ src/notification-delivery/
                                  # translates its .code to an HTTP status)
 ```
 
-`src/infrastructure/store.ts` is a **generic technical infrastructure** module
-(see [`architecture.md`](../architecture.md)) — not part of this or any
-bounded context: it knows how to atomically read/write a JSON file or a `Map`
-serialized as one, and nothing else. It declares no type for `Recipient`,
-`Notification`, or any other entity — those record/DTO shapes, and the
-specific filenames they're persisted under, are owned by this context's own
-`infrastructure/` files above, which are the only callers of `store.ts` (via
-the `#store` import alias).
+`src/infrastructure/sqlite.ts` is this context's persistence layer's **generic
+technical infrastructure** module (see [`architecture.md`](../architecture.md))
+— not part of this or any bounded context: it owns one shared `DatabaseSync`
+connection to `DATA_DIR/app.db` (the Fly volume already mounted for this app),
+and declares no type for `Recipient`, `Notification`, or any other entity.
+Those record/DTO shapes, table schemas, and `CREATE TABLE` statements are
+owned by this context's own `infrastructure/` files above, which are the only
+callers of `sqlite.ts` (via the `#sqlite` import alias).
 
 `server.ts` is wiring only: construct infrastructure adapters, inject into
 application use cases, mount `interface/http-routes.ts`, listen.

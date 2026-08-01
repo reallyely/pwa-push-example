@@ -3,8 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-import { JsonRecipientRepository } from "#notification-delivery/infrastructure/json-recipient-repository.ts";
-import { JsonNotificationRepository } from "#notification-delivery/infrastructure/json-notification-repository.ts";
+import { SqliteRecipientRepository } from "#notification-delivery/infrastructure/sqlite-recipient-repository.ts";
+import { SqliteNotificationRepository } from "#notification-delivery/infrastructure/sqlite-notification-repository.ts";
 import { WebPushGateway } from "#notification-delivery/infrastructure/web-push-gateway.ts";
 
 import { makeRegisterRecipient } from "#notification-delivery/application/register-recipient.ts";
@@ -41,8 +41,8 @@ function generateId(): string {
 }
 
 // --- Infrastructure adapters ---
-const recipientRepository = new JsonRecipientRepository();
-const notificationRepository = new JsonNotificationRepository();
+const recipientRepository = new SqliteRecipientRepository();
+const notificationRepository = new SqliteNotificationRepository();
 const pushGateway = new WebPushGateway({
   vapidSubject: VAPID_SUBJECT,
   vapidPublicKey: VAPID_PUBLIC_KEY,

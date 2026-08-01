@@ -1,14 +1,8 @@
-import * as store from '#store';
+import { getDb } from '#sqlite';
 import { Notification } from '#notification-delivery/domain/notification.ts';
 import { STATUSES } from '#notification-delivery/domain/notification-status.ts';
-import { migrateLegacyNotificationFiles } from './migrate-legacy-notification-files.ts';
-import type { LegacyNotificationEntry, LegacyScheduledEntry } from './migrate-legacy-notification-files.ts';
 import type { NotificationRepository } from '#notification-delivery/application/ports.ts';
 import type { Notification as NotificationEntity } from '#notification-delivery/domain/notification.ts';
-
-const NOTIFICATION_RECORDS_FILE = store.dataFilePath('notification-records.json');
-const LEGACY_NOTIFICATIONS_FILE = store.dataFilePath('notifications.json');
-const LEGACY_SCHEDULED_FILE = store.dataFilePath('scheduled.json');
 
 export interface NotificationRecord {
   id: string;
@@ -50,63 +44,75 @@ function toRecord(notification: NotificationEntity): NotificationRecord {
   };
 }
 
-export class JsonNotificationRepository implements NotificationRepository {
-  records: NotificationRecord[];
+export class SqliteNotificationRepository implements NotificationRepository {
+  private db = getDb();
   // Ids claimed by claimDueNotifications() but not yet saved back with a
   // terminal status — closes the gap an overlapping tick could otherwise
   // race through. Not part of NotificationStatus; see
   // "Claiming due notifications must be atomic" in the model doc.
-  private claimedIds: Set<string>;
+  private claimedIds: Set<string> = new Set();
 
   constructor() {
-    const existing = store.readJsonFile<NotificationRecord[]>(NOTIFICATION_RECORDS_FILE);
-    if (existing !== undefined) {
-      this.records = existing;
-    } else {
-      this.records = migrateLegacyNotificationFiles({
-        legacyNotifications: store.readJsonFile<LegacyNotificationEntry[]>(LEGACY_NOTIFICATIONS_FILE) ?? [],
-        legacyScheduled: store.readJsonFile<LegacyScheduledEntry[]>(LEGACY_SCHEDULED_FILE) ?? [],
-      });
-      console.log(`[notification-delivery] migrated ${this.records.length} legacy notification record(s)`);
-      this.persist();
-    }
-    this.claimedIds = new Set();
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        recipientId TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        scheduledDateTime TEXT NOT NULL,
+        icon TEXT,
+        status TEXT NOT NULL,
+        sentDateTime TEXT,
+        failureReason TEXT
+      )
+    `);
   }
 
   async findById(id: string): Promise<NotificationEntity | null> {
-    const record = this.records.find((r) => r.id === id);
-    return record ? toEntity(record) : null;
+    const row = this.db.prepare(`SELECT * FROM notifications WHERE id = ?`).get(id) as NotificationRecord | undefined;
+    return row ? toEntity(row) : null;
   }
 
   async findAll(): Promise<NotificationEntity[]> {
-    return this.records.map(toEntity);
+    const rows = this.db.prepare(`SELECT * FROM notifications`).all() as NotificationRecord[];
+    return rows.map(toEntity);
   }
 
   async save(notification: NotificationEntity): Promise<void> {
     const record = toRecord(notification);
-    const index = this.records.findIndex((r) => r.id === record.id);
-    if (index === -1) {
-      this.records.push(record);
-    } else {
-      this.records[index] = record;
-    }
-    this.claimedIds.delete(record.id);
-    this.persist();
+    this.db.prepare(`
+      INSERT INTO notifications (id, recipientId, title, description, scheduledDateTime, icon, status, sentDateTime, failureReason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        recipientId = excluded.recipientId,
+        title = excluded.title,
+        description = excluded.description,
+        scheduledDateTime = excluded.scheduledDateTime,
+        icon = excluded.icon,
+        status = excluded.status,
+        sentDateTime = excluded.sentDateTime,
+        failureReason = excluded.failureReason
+    `).run(
+      record.id,
+      record.recipientId,
+      record.title,
+      record.description,
+      record.scheduledDateTime,
+      record.icon,
+      record.status,
+      record.sentDateTime,
+      record.failureReason,
+    );
+    this.claimedIds.delete(notification.id);
   }
 
   async claimDueNotifications(now: Date): Promise<NotificationEntity[]> {
-    const due = this.records.filter(
-      (r) => r.status === STATUSES.SCHEDULED
-        && !this.claimedIds.has(r.id)
-        && new Date(r.scheduledDateTime).getTime() <= now.getTime()
-    );
+    const rows = this.db.prepare(`SELECT * FROM notifications WHERE status = ? AND scheduledDateTime <= ?`)
+      .all(STATUSES.SCHEDULED, now.toISOString()) as NotificationRecord[];
+    const due = rows.filter((r) => !this.claimedIds.has(r.id));
     for (const record of due) {
       this.claimedIds.add(record.id);
     }
     return due.map(toEntity);
-  }
-
-  private persist(): void {
-    store.writeJsonFile(NOTIFICATION_RECORDS_FILE, this.records);
   }
 }
