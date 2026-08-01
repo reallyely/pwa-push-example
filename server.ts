@@ -16,6 +16,7 @@ import { makeCancelScheduledNotification } from "#notification-delivery/applicat
 import { makeDeliverNotification } from "#notification-delivery/application/deliver-notification.ts";
 import { makeRunDueNotifications } from "#notification-delivery/application/run-due-notifications.ts";
 import { makeListNotifications } from "#notification-delivery/application/list-notifications.ts";
+import { makeGetNotification } from "#notification-delivery/application/get-notification.ts";
 
 import { makeHttpRoutes } from "#notification-delivery/interface/http-routes.ts";
 
@@ -72,6 +73,7 @@ const runDueNotifications = makeRunDueNotifications({
   deliverNotification,
 });
 const listNotifications = makeListNotifications({ notificationRepository });
+const getNotification = makeGetNotification({ notificationRepository });
 
 // --- Interface ---
 const app = express();
@@ -92,6 +94,7 @@ app.use(
     deliverNotification,
     runDueNotifications,
     listNotifications,
+    getNotification,
   }),
 );
 

@@ -24,6 +24,7 @@ interface HttpRoutesConfig {
   deliverNotification: (request: { notificationId: string }) => Promise<DeliverNotificationResponse>;
   runDueNotifications: () => Promise<{ checked: number; sent: number }>;
   listNotifications: (request: { view: 'scheduled' | 'history' }) => Promise<Notification[]>;
+  getNotification: (request: { notificationId: string }) => Promise<Notification>;
 }
 
 export function makeHttpRoutes({
@@ -38,6 +39,7 @@ export function makeHttpRoutes({
   deliverNotification,
   runDueNotifications,
   listNotifications,
+  getNotification,
 }: HttpRoutesConfig) {
   const router = express.Router();
   router.use(express.json());
@@ -100,6 +102,15 @@ export function makeHttpRoutes({
   router.get('/api/notifications', async (req: any, res: any) => {
     const list = await listNotifications({ view: 'history' });
     res.json(list.map(toNotificationView));
+  });
+
+  router.get('/api/notifications/:id', async (req: any, res: any) => {
+    try {
+      const notification = await getNotification({ notificationId: req.params.id });
+      res.json(toNotificationView(notification));
+    } catch (err) {
+      sendError(res, err as NotificationDeliveryError);
+    }
   });
 
   router.post('/api/schedule', async (req: any, res: any) => {
