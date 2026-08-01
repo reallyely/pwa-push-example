@@ -99,5 +99,6 @@ function generateId(): string {
 
     NotificationScheduler,
   ],
+  exports: [RegisterRecipient],
 })
 export class NotificationDeliveryModule {}

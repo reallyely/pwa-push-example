@@ -5,11 +5,19 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-const STORAGE_KEY = 'pwa-push-demo:username';
-
-const form = document.getElementById('register-form');
-const usernameInput = document.getElementById('username');
+const authSection = document.getElementById('auth-section');
+const accountSection = document.getElementById('account-section');
+const accountEmail = document.getElementById('account-email');
+const authForm = document.getElementById('auth-form');
+const authHeading = document.getElementById('auth-heading');
+const authSubmit = document.getElementById('auth-submit');
+const authToggle = document.getElementById('auth-toggle');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+const logoutButton = document.getElementById('logout-button');
 const statusEl = document.getElementById('status');
+
+let mode = 'login';
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -26,7 +34,18 @@ function isIOS() {
   );
 }
 
-async function subscribeAndSend(username) {
+function showAccount(email) {
+  authSection.hidden = true;
+  accountSection.hidden = false;
+  accountEmail.textContent = email;
+}
+
+function showAuth() {
+  authSection.hidden = false;
+  accountSection.hidden = true;
+}
+
+async function subscribeAndSend() {
   const registration = await navigator.serviceWorker.register('/sw.js');
   await navigator.serviceWorker.ready;
 
@@ -43,24 +62,14 @@ async function subscribeAndSend(username) {
   await fetch('/api/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, subscription: subscription.toJSON() }),
+    credentials: 'same-origin',
+    body: JSON.stringify({ subscription: subscription.toJSON() }),
   });
 }
 
-async function registerAndSubscribe(username) {
-  setStatus('Registering...');
-  const registerRes = await fetch('/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
-  });
-  if (!registerRes.ok) {
-    throw new Error('Registration failed');
-  }
-  localStorage.setItem(STORAGE_KEY, username);
-
+async function enableNotifications(email) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    setStatus(`Registered as ${username}, but this browser doesn't support push notifications.`);
+    setStatus(`Logged in as ${email}, but this browser doesn't support push notifications.`);
     return;
   }
 
@@ -69,9 +78,9 @@ async function registerAndSubscribe(username) {
   // no-ops on requestPermission(). Send the user to install first instead of prompting.
   if (isIOS() && !isStandalone()) {
     setStatus(
-      `Registered as ${username}. On iPhone/iPad, push only works once this is installed: ` +
-        `tap Share → "Add to Home Screen", then open the app from that icon and submit this ` +
-        `form again to finish enabling notifications.`
+      `Logged in as ${email}. On iPhone/iPad, push only works once this is installed: ` +
+        `tap Share → "Add to Home Screen", then open the app from that icon and log in ` +
+        `again to finish enabling notifications.`
     );
     return;
   }
@@ -79,26 +88,58 @@ async function registerAndSubscribe(username) {
   setStatus('Requesting notification permission...');
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    setStatus(`Registered as ${username}, but notification permission was denied.`);
+    setStatus(`Logged in as ${email}, but notification permission was denied.`);
     return;
   }
 
   setStatus('Subscribing to push...');
-  await subscribeAndSend(username);
+  await subscribeAndSend();
 
-  setStatus(`Registered as ${username}. Notifications enabled — you can install this app now.`);
+  setStatus(`Logged in as ${email}. Notifications enabled — you can install this app now.`);
 }
 
-form.addEventListener('submit', async (event) => {
+authToggle.addEventListener('click', () => {
+  mode = mode === 'login' ? 'register' : 'login';
+  authHeading.textContent = mode === 'login' ? 'Log In' : 'Create Account';
+  authSubmit.textContent = mode === 'login' ? 'Log In' : 'Create Account';
+  authToggle.textContent = mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Log in';
+});
+
+authForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const username = usernameInput.value.trim();
-  if (!username) return;
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+  if (!email || !password) return;
+
   try {
-    await registerAndSubscribe(username);
+    setStatus(mode === 'login' ? 'Logging in...' : 'Registering...');
+    const path = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const body = mode === 'login' ? { email, password } : { email, password, role: 'Participant' };
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setStatus(`Failed: ${data.error || res.statusText}`);
+      return;
+    }
+
+    showAccount(data.email);
+    await enableNotifications(data.email);
   } catch (err) {
     console.error(err);
     setStatus(`Something went wrong: ${err.message}`);
   }
+});
+
+logoutButton.addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  showAuth();
+  setStatus('');
+  authForm.reset();
 });
 
 // Self-heal on every open: iOS never fires `pushsubscriptionchange`, and web push
@@ -107,15 +148,21 @@ form.addEventListener('submit', async (event) => {
 // launches (permission is already granted, so no user gesture is required) is the
 // workaround the web push community has converged on in the absence of official guidance.
 (async () => {
-  const username = localStorage.getItem(STORAGE_KEY);
-  if (!username) return;
+  const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+  if (!res.ok) {
+    showAuth();
+    return;
+  }
+
+  const data = await res.json();
+  showAccount(data.email);
+
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   if (Notification.permission !== 'granted') return;
 
-  usernameInput.value = username;
   try {
-    await subscribeAndSend(username);
-    setStatus(`Registered as ${username}. Notifications enabled.`);
+    await subscribeAndSend();
+    setStatus(`Logged in as ${data.email}. Notifications enabled.`);
   } catch (err) {
     console.error('Silent resubscribe failed', err);
   }

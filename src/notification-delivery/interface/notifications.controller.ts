@@ -1,12 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Post, Res, UseFilters } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Headers, HttpCode, Param, Post, Req, Res, UseFilters, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ScheduleNotification } from '#notification-delivery/application/schedule-notification.js';
 import { CancelScheduledNotification } from '#notification-delivery/application/cancel-scheduled-notification.js';
 import { DeliverNotification } from '#notification-delivery/application/deliver-notification.js';
 import { RunDueNotifications } from '#notification-delivery/application/run-due-notifications.js';
 import { ListNotifications } from '#notification-delivery/application/list-notifications.js';
 import { GetNotification } from '#notification-delivery/application/get-notification.js';
+import { SessionAuthGuard } from '#identity/interface/session-auth.guard.js';
+import { RolesGuard } from '#identity/interface/roles.guard.js';
+import { Roles } from '#identity/interface/roles.decorator.js';
 import { toNotificationView, toSendOutcome } from './notification-presenter.js';
 import { NotificationDeliveryExceptionFilter } from './notification-delivery-exception.filter.js';
 
@@ -24,6 +27,8 @@ export class NotificationsController {
   ) {}
 
   @Post('send')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles('Researcher', 'Trainer')
   async send(
     @Body() body: { username: string; title?: string; body?: string; icon?: string },
     @Res() res: Response,
@@ -41,18 +46,27 @@ export class NotificationsController {
   }
 
   @Get('notifications')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles('Researcher', 'Trainer')
   async history() {
     const list = await this.listNotifications.execute({ view: 'history' });
     return list.map(toNotificationView);
   }
 
   @Get('notifications/:id')
-  async byId(@Param('id') id: string) {
+  @UseGuards(SessionAuthGuard)
+  async byId(@Param('id') id: string, @Req() req: Request) {
     const notification = await this.getNotification.execute({ notificationId: id });
+    const user = (req as any).user;
+    if (user.role !== 'Researcher' && user.role !== 'Trainer' && user.id !== notification.recipientId) {
+      throw new ForbiddenException();
+    }
     return toNotificationView(notification);
   }
 
   @Post('schedule')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles('Researcher', 'Trainer')
   async schedule(
     @Body() body: { username: string; title?: string; body?: string; icon?: string; sendAt?: string },
     @Res() res: Response,
@@ -85,6 +99,8 @@ export class NotificationsController {
   }
 
   @Get('scheduled')
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles('Researcher', 'Trainer')
   async scheduled() {
     const list = await this.listNotifications.execute({ view: 'scheduled' });
     return list.map(toNotificationView);
@@ -92,6 +108,8 @@ export class NotificationsController {
 
   @Delete('scheduled/:id')
   @HttpCode(204)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles('Researcher', 'Trainer')
   cancel(@Param('id') id: string): Promise<void> {
     return this.cancelScheduledNotification.execute({ notificationId: id });
   }

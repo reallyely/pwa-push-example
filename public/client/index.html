@@ -12,25 +12,42 @@
     <body>
         <main>
             <h1>PWA Push Demo</h1>
-            <p>
-                Register a username and enable notifications. On desktop/Android
-                this works right away; on iPhone/iPad you'll be asked to install
-                to your Home Screen first, then reopen the app from there and
-                submit again.
-            </p>
 
-            <form id="register-form">
-                <input
-                    id="username"
-                    type="text"
-                    placeholder="Pick a username"
-                    autocomplete="off"
-                    required
-                />
-                <button type="submit">
-                    Register &amp; Enable Notifications
+            <section id="auth-section">
+                <p>
+                    Log in or create an account to enable notifications. On
+                    desktop/Android this works right away; on iPhone/iPad
+                    you'll be asked to install to your Home Screen first,
+                    then reopen the app from there and submit again.
+                </p>
+
+                <h2 id="auth-heading">Log In</h2>
+                <form id="auth-form">
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="Email"
+                        autocomplete="username"
+                        required
+                    />
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Password"
+                        autocomplete="current-password"
+                        required
+                    />
+                    <button id="auth-submit" type="submit">Log In</button>
+                </form>
+                <button id="auth-toggle" type="button">
+                    Need an account? Create one
                 </button>
-            </form>
+            </section>
+
+            <section id="account-section" hidden>
+                <p>You're logged in as <span id="account-email"></span>.</p>
+                <button id="logout-button" type="button">Log Out</button>
+            </section>
 
             <p id="status"></p>
         </main>

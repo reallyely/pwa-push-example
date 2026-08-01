@@ -29,6 +29,10 @@ async function load() {
   setStatus('Loading...');
   const res = await fetch(`/api/notifications/${id}`);
   if (!res.ok) {
+    if (res.status === 401) {
+      setStatus('Please log in to view this notification.');
+      return;
+    }
     const data = await res.json().catch(() => ({}));
     setStatus(`Failed to load notification: ${data.error || res.statusText}`);
     return;

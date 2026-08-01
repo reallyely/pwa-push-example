@@ -299,6 +299,20 @@ Training/Survey/Participant exist:
   was scheduled — that context (e.g. "this fulfills Survey X") is owned and
   kept entirely by the caller.
 
+The `identity` bounded context now fulfills the "provisions Recipients"
+integration point anticipated above: `RegisterUser`
+(`src/identity/application/register-user.ts`) calls
+`RegisterRecipient.execute({ username: user.id })` directly as a plain
+constructor dependency whenever a new account is created. Separately,
+`SessionAuthGuard`/`RolesGuard` from `identity/interface/` are now used by
+this context's own controllers (`recipients.controller.ts`,
+`notifications.controller.ts`) to gate routes — the one sanctioned
+cross-context interface import in this codebase, since authentication is a
+cross-cutting concern rather than a business capability of this context. See
+[`docs/identity-model.md`](identity-model.md) for the full picture. This
+context's own model (`Recipient`/`Notification`, no role field) is
+unchanged.
+
 ## Non-goals (for now)
 
 - No `role` field or `RecipientRole` value object.
