@@ -1,0 +1,76 @@
+<form (ngSubmit)="submit()" novalidate>
+  <label>
+    User
+    <select name="user" [ngModel]="selectedUserId()" (ngModelChange)="selectedUserId.set($event)" required>
+      <option value="" disabled>Select a user</option>
+      @if (users().length === 0) {
+        <option value="" disabled>No users registered yet</option>
+      }
+      @for (user of users(); track user.id) {
+        <option [value]="user.id">{{ user.label }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Title
+    <input
+      type="text"
+      name="title"
+      [ngModel]="title()"
+      (ngModelChange)="title.set($event)"
+      required
+    />
+  </label>
+
+  <label>
+    Message
+    <input
+      type="text"
+      name="body"
+      [ngModel]="body()"
+      (ngModelChange)="body.set($event)"
+      placeholder="Hello from the admin dashboard"
+    />
+  </label>
+
+  <label>
+    Icon URL (optional)
+    <input
+      type="text"
+      name="icon"
+      [ngModel]="icon()"
+      (ngModelChange)="icon.set($event)"
+      placeholder="https://example.com/icon.png"
+    />
+  </label>
+
+  <label class="checkbox-label">
+    <input
+      type="checkbox"
+      name="scheduling"
+      [ngModel]="scheduling()"
+      (ngModelChange)="scheduling.set($event)"
+    />
+    Schedule for later
+  </label>
+
+  @if (scheduling()) {
+    <label>
+      Send at
+      <input
+        type="datetime-local"
+        name="sendAt"
+        [ngModel]="sendAt()"
+        (ngModelChange)="sendAt.set($event)"
+        required
+      />
+    </label>
+  }
+
+  <button type="submit" [disabled]="submitting()">{{ submitLabel() }}</button>
+
+  @if (status(); as msg) {
+    <p class="status">{{ msg }}</p>
+  }
+</form>

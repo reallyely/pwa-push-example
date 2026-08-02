@@ -1,0 +1,50 @@
+<form (ngSubmit)="submit()" novalidate>
+  <h2>{{ heading() }}</h2>
+
+  <label>
+    Email
+    <input
+      type="email"
+      name="email"
+      [ngModel]="email()"
+      (ngModelChange)="email.set($event)"
+      autocomplete="email"
+      required
+    />
+  </label>
+
+  <label>
+    Password
+    <input
+      type="password"
+      name="password"
+      [ngModel]="password()"
+      (ngModelChange)="password.set($event)"
+      [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+      required
+    />
+  </label>
+
+  @if (mode() === 'register' && showRolePicker()) {
+    <label>
+      Role
+      <select name="role" [ngModel]="selectedRole()" (ngModelChange)="selectedRole.set($event)">
+        @for (role of allowedRegisterRoles(); track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  <button type="submit" [disabled]="submitting()">
+    {{ mode() === 'login' ? 'Log In' : 'Create Account' }}
+  </button>
+
+  <button type="button" class="link-button" (click)="toggleMode()">
+    {{ mode() === 'login' ? 'Need an account? Create one' : 'Already have an account? Log in' }}
+  </button>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+</form>

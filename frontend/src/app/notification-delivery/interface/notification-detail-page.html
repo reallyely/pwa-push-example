@@ -1,0 +1,25 @@
+@switch (state()) {
+  @case ('loading') {
+    <p>Loading...</p>
+  }
+  @case ('loaded') {
+    @if (notification(); as n) {
+      <h1>{{ n.title }}</h1>
+      @if (n.icon) {
+        <img [src]="n.icon" alt="" width="48" height="48" />
+      }
+      <p>{{ n.body }}</p>
+      <dl>
+        <dt>Status</dt>
+        <dd>{{ n.status }}</dd>
+        <dt>Send at</dt>
+        <dd>{{ n.sendAt }}</dd>
+        <dt>Sent at</dt>
+        <dd>{{ n.sentAt || '—' }}</dd>
+      </dl>
+    }
+  }
+  @default {
+    <p class="error">{{ errorMessage() }}</p>
+  }
+}

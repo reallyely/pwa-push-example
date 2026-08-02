@@ -1,0 +1,11 @@
+<section class="enable-notifications-card">
+  <h2>Push Notifications</h2>
+
+  @if (message(); as msg) {
+    <p class="status">{{ msg }}</p>
+  }
+
+  @if (canEnable()) {
+    <button type="button" (click)="enable()">Enable notifications</button>
+  }
+</section>

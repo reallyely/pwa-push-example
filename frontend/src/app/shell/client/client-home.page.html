@@ -1,0 +1,4 @@
+<p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
+<button type="button" (click)="logout()">Log out</button>
+
+<app-enable-notifications-card />

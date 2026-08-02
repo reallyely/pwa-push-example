@@ -1,0 +1,25 @@
+h2 {
+  margin-top: 2.5rem;
+  font-size: 1.1rem;
+  color: #4f46e5;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #e5e5e5;
+  vertical-align: top;
+}
+
+th {
+  color: #555;
+  font-weight: 600;
+}

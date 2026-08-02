@@ -1,0 +1,21 @@
+h1 {
+  color: #4f46e5;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+}
+
+dt {
+  font-weight: 600;
+}
+
+dd {
+  margin: 0;
+}
+
+.error {
+  color: #b91c1c;
+}
