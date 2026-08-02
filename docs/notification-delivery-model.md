@@ -1,8 +1,8 @@
 # Notification Delivery — Bounded Context
 
 This document captures the domain model for the push-notification code
-(originally a monolithic `server.js` / `store.js`, now `src/notification-delivery/`
-plus a composition-root `server.ts`), scoped deliberately as its own **bounded
+(originally a monolithic `server.js` / `store.js`, now `backend/notification-delivery/`
+plus a composition-root `backend/main.ts`), scoped deliberately as its own **bounded
 context**, separate from the Core Domain described in
 [`domain-model.md`](domain-model.md) (Training / Survey / Participant / Question).
 
@@ -120,11 +120,13 @@ Implemented as TypeScript compiled via `tsc` and run as NestJS (see
 which files are allowed to import `@nestjs/*`):
 
 ```
-src/notification-delivery/
-  domain/
-    recipient.ts               # entity: register/subscribeToPush/clearSubscription
-    notification.ts            # entity: schedule/cancel/markSent/markFailed, guards transitions
-    notification-status.ts     # value object: Scheduled | Sent | Failed | Cancelled
+domain/src/notification-delivery/   # shared package — see architecture.md's "The domain/ package"
+  recipient.ts               # entity: register/subscribeToPush/clearSubscription
+  notification.ts            # entity: schedule/cancel/markSent/markFailed, guards transitions
+  notification-status.ts     # value object: Scheduled | Sent | Failed | Cancelled
+  index.ts                   # barrel, exported as 'domain/notification-delivery'
+
+backend/notification-delivery/
   application/
     ports.ts                    # RecipientRepository, NotificationRepository, PushGateway
                                  # (interfaces) + their DI Symbol tokens (RECIPIENT_REPOSITORY,
@@ -178,7 +180,7 @@ src/notification-delivery/
                                     # the controllers/scheduler above
 ```
 
-`src/infrastructure/sqlite.ts` is this context's persistence layer's **generic
+`backend/infrastructure/sqlite.ts` is this context's persistence layer's **generic
 technical infrastructure** module (see [`architecture.md`](../architecture.md))
 — not part of this or any bounded context: it owns one shared `DatabaseSync`
 connection to `DATA_DIR/app.db` (the Fly volume already mounted for this app),
@@ -189,7 +191,7 @@ callers of `sqlite.ts` (via the `#sqlite` import alias), calling `getDb()`
 directly in their constructors rather than receiving it through Nest's DI —
 an existing design predating the Nest conversion, left as-is.
 
-`src/main.ts` + `src/app.module.ts` (composition root, shared by every
+`backend/main.ts` + `backend/app.module.ts` (composition root, shared by every
 context) + `notification-delivery.module.ts` (this context's slice) are
 wiring only: construct infrastructure adapters, inject into application use
 cases, mount the two controllers above, listen.
@@ -202,6 +204,14 @@ regardless of the software. Its DI tokens are colocated there too, since a
 natural companion to the interface it identifies — this is a plain value, not
 a framework import, so it doesn't compromise `application/`'s framework-free
 rule.
+
+This context also has a frontend-side counterpart — ports, the
+`EnablePushNotifications`/`AdminNotificationsStore` orchestrators, HTTP/browser-push
+gateway adapters, and the send/schedule/history/detail components under
+`frontend/src/app/notification-delivery/` — documented in
+[`docs/frontend-architecture.md`](frontend-architecture.md) rather than here,
+since this document covers Notification Delivery's backend model/layering
+only.
 
 ## Use case boundaries (Request/Response shapes)
 
@@ -301,7 +311,7 @@ Training/Survey/Participant exist:
 
 The `identity` bounded context now fulfills the "provisions Recipients"
 integration point anticipated above: `RegisterUser`
-(`src/identity/application/register-user.ts`) calls
+(`backend/identity/application/register-user.ts`) calls
 `RegisterRecipient.execute({ username: user.id })` directly as a plain
 constructor dependency whenever a new account is created. Separately,
 `SessionAuthGuard`/`RolesGuard` from `identity/interface/` are now used by

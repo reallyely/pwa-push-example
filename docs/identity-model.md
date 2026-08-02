@@ -1,7 +1,8 @@
 # Identity — Bounded Context
 
 This document captures the domain model for accounts, login, and roles
-(`src/identity/`), scoped deliberately as its own **bounded context**,
+(`backend/identity/`, entities in `domain/src/identity/`), scoped
+deliberately as its own **bounded context**,
 separate from both [`domain-model.md`](domain-model.md)'s Core Domain
 (Training / Survey / Participant / Question) and
 [`notification-delivery-model.md`](notification-delivery-model.md)'s
@@ -102,11 +103,13 @@ Implemented as TypeScript compiled via `tsc` and run as NestJS (see
 which files are allowed to import `@nestjs/*`):
 
 ```
-src/identity/
-  domain/
-    role.ts                    # value object: Participant | Researcher | Trainer, ROLES + isValid()
-    user.ts                    # entity: User.register(...), no mutation methods
-    session.ts                 # entity: Session.issue(...), isExpired(now)
+domain/src/identity/           # shared package — see architecture.md's "The domain/ package"
+  role.ts                    # value object: Participant | Researcher | Trainer, ROLES + isValid()
+  user.ts                    # entity: User.register(...), no mutation methods
+  session.ts                 # entity: Session.issue(...), isExpired(now)
+  index.ts                   # barrel, exported as 'domain/identity'
+
+backend/identity/
   application/
     ports.ts                    # UserRepository, SessionRepository, PasswordHasher (interfaces)
                                  # + their DI Symbol tokens (USER_REPOSITORY, SESSION_REPOSITORY,
@@ -151,7 +154,7 @@ src/identity/
                                  # NotificationDeliveryModule to get RegisterRecipient
 ```
 
-`src/infrastructure/sqlite.ts` is this context's persistence layer's
+`backend/infrastructure/sqlite.ts` is this context's persistence layer's
 **generic technical infrastructure** module too (see
 [`architecture.md`](../architecture.md) and
 [`notification-delivery-model.md`](notification-delivery-model.md)) — shared,
@@ -192,7 +195,7 @@ Other contexts integrate with Identity in exactly two ways:
    don't duplicate recipient-registration logic.
 
 2. **Gating a route.** `SessionAuthGuard` and `RolesGuard` (in
-   `src/identity/interface/`) are the one sanctioned exception to "one
+   `backend/identity/interface/`) are the one sanctioned exception to "one
    context never reaches into another context's `interface/`" (the rule
    `architecture.md` otherwise states without exception). Any controller in
    any context may `@UseGuards(SessionAuthGuard, RolesGuard)` by importing
@@ -208,9 +211,16 @@ Other contexts integrate with Identity in exactly two ways:
    already imports `NotificationDeliveryModule` (for `RegisterRecipient`),
    and the reverse import would create a module cycle.
 
-Other contexts must not import from `src/identity/domain/`,
-`src/identity/application/`, or `src/identity/infrastructure/` — those stay
-private to this context.
+Other contexts must not import from `domain/src/identity/` (except through
+the public `domain/identity` package barrel, same as any other consumer),
+`backend/identity/application/`, or `backend/identity/infrastructure/` —
+those stay private to this context.
+
+This context also has a frontend-side counterpart — ports, an `AuthStore`,
+an HTTP gateway, guards, and login/register components under
+`frontend/src/app/identity/` — documented in
+[`docs/frontend-architecture.md`](frontend-architecture.md) rather than here,
+since this document covers Identity's backend model/layering only.
 
 ## Non-goals (for now)
 
