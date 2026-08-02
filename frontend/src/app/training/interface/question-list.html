@@ -1,0 +1,28 @@
+<h2>Question Bank</h2>
+<p-table [value]="questions()">
+  <ng-template #header>
+    <tr>
+      <th>Prompt</th>
+      <th>Answer format</th>
+      <th>Parameters</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-q>
+    <tr>
+      <td>{{ q.prompt }}</td>
+      <td><p-tag [value]="answerFormatSummary(q)" severity="info" /></td>
+      <td>
+        @if (q.parameterNames.length > 0) {
+          {{ q.parameterNames.join(', ') }}
+        } @else {
+          &mdash;
+        }
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="3">No questions created yet</td>
+    </tr>
+  </ng-template>
+</p-table>

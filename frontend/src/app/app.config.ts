@@ -14,6 +14,9 @@ import { AdminNotificationsStore } from './notification-delivery/application/adm
 import { HttpRecipientGateway } from './notification-delivery/infrastructure/http-recipient-gateway';
 import { HttpNotificationGateway } from './notification-delivery/infrastructure/http-notification-gateway';
 import { BrowserPushGateway } from './notification-delivery/infrastructure/browser-push-gateway';
+import { QuestionGateway } from './training/application/ports';
+import { QuestionsStore } from './training/application/questions.store';
+import { HttpQuestionGateway } from './training/infrastructure/http-question-gateway';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -39,6 +42,12 @@ export const appConfig: ApplicationConfig = {
     {
       provide: AdminNotificationsStore,
       useFactory: () => new AdminNotificationsStore(inject(NotificationGateway)),
+    },
+
+    { provide: QuestionGateway, useClass: HttpQuestionGateway },
+    {
+      provide: QuestionsStore,
+      useFactory: () => new QuestionsStore(inject(QuestionGateway)),
     },
   ],
 };

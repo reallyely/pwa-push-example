@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationDeliveryModule } from './notification-delivery/notification-delivery.module.js';
 import { IdentityModule } from './identity/identity.module.js';
+import { TrainingModule } from './training/training.module.js';
 
 const REQUIRED_ENV_VARS = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'] as const;
 
@@ -20,6 +21,7 @@ function validateEnv(config: Record<string, unknown>): Record<string, unknown> {
     ScheduleModule.forRoot(),
     NotificationDeliveryModule,
     IdentityModule,
+    TrainingModule,
   ],
 })
 export class AppModule {}

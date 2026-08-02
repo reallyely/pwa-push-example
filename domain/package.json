@@ -16,6 +16,10 @@
     "./notification-delivery": {
       "types": "./src/notification-delivery/index.ts",
       "default": "./src/notification-delivery/index.ts"
+    },
+    "./training": {
+      "types": "./src/training/index.ts",
+      "default": "./src/training/index.ts"
     }
   }
 }

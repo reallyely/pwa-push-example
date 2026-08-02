@@ -1,0 +1,8 @@
+<div class="page">
+  <a routerLink="/admin">&larr; Back to dashboard</a>
+
+  <p>Author a Question for the question bank. Questions are free-floating until assigned to a Survey.</p>
+  <app-question-form />
+
+  <app-question-list [questions]="store.questions()" />
+</div>

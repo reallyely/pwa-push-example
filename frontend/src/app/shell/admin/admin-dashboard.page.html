@@ -2,6 +2,10 @@
   <p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
   <p-button type="button" label="Log out" severity="secondary" (onClick)="logout()" />
 
+  @if (authStore.currentUser()?.role === ROLES.RESEARCHER) {
+    <p><a routerLink="/admin/questions">Manage Questions &rarr;</a></p>
+  }
+
   <p>Select a registered user and send them a push notification.</p>
   <app-send-notification-form [users]="users()" />
 

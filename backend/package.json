@@ -16,7 +16,8 @@
   "imports": {
     "#sqlite": "./dist/infrastructure/sqlite.js",
     "#notification-delivery/*": "./dist/notification-delivery/*",
-    "#identity/*": "./dist/identity/*"
+    "#identity/*": "./dist/identity/*",
+    "#training/*": "./dist/training/*"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

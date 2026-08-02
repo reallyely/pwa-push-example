@@ -1,0 +1,83 @@
+<form (ngSubmit)="submit()" novalidate>
+  <label for="prompt">Prompt</label>
+  <textarea
+    pTextarea
+    id="prompt"
+    name="prompt"
+    rows="3"
+    [ngModel]="prompt()"
+    (ngModelChange)="prompt.set($event)"
+    placeholder="e.g. I use <skill> every day"
+    required
+  ></textarea>
+
+  @if (parameterNames().length > 0) {
+    <p class="hint">Parameters detected: {{ parameterNames().join(', ') }} — bound to a value when this Question is added to a Survey.</p>
+  }
+
+  <label for="answerType">Answer format</label>
+  <p-select
+    inputId="answerType"
+    [options]="answerTypeOptions"
+    optionLabel="label"
+    optionValue="value"
+    [ngModel]="answerType()"
+    (ngModelChange)="answerType.set($event)"
+    name="answerType"
+  />
+
+  @if (answerType() === 'Likert') {
+    <fieldset>
+      <legend>Scale points, in order</legend>
+      @for (point of scalePoints(); track $index) {
+        <div class="list-row">
+          <input
+            pInputText
+            type="text"
+            [name]="'scalePoint' + $index"
+            [ngModel]="point"
+            (ngModelChange)="updateScalePoint($index, $event)"
+            placeholder="e.g. Strongly Agree"
+          />
+          @if (scalePoints().length > 2) {
+            <p-button type="button" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="removeScalePoint($index)" />
+          }
+        </div>
+      }
+      <p-button type="button" label="Add point" severity="secondary" (onClick)="addScalePoint()" />
+    </fieldset>
+  }
+
+  @if (answerType() === 'Choice') {
+    <fieldset>
+      <legend>Options</legend>
+      @for (option of choiceOptions(); track $index) {
+        <div class="list-row">
+          <input
+            pInputText
+            type="text"
+            [name]="'choiceOption' + $index"
+            [ngModel]="option"
+            (ngModelChange)="updateChoiceOption($index, $event)"
+            placeholder="e.g. Option A"
+          />
+          @if (choiceOptions().length > 2) {
+            <p-button type="button" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="removeChoiceOption($index)" />
+          }
+        </div>
+      }
+      <p-button type="button" label="Add option" severity="secondary" (onClick)="addChoiceOption()" />
+
+      <label class="checkbox-label">
+        <p-checkbox [binary]="true" name="allowMultiple" [ngModel]="allowMultiple()" (ngModelChange)="allowMultiple.set($event)" />
+        Allow selecting more than one option
+      </label>
+    </fieldset>
+  }
+
+  <p-button type="submit" label="Create Question" [disabled]="submitting()" [loading]="submitting()" />
+
+  @if (status(); as msg) {
+    <p-message [severity]="statusSeverity()" styleClass="status">{{ msg }}</p-message>
+  }
+</form>

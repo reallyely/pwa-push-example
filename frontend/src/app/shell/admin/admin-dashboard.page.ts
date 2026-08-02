@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Button } from 'primeng/button';
+import { ROLES } from 'domain/identity';
 import { AuthStore } from '@app/identity/application/auth.store';
 import { AuthGateway } from '@app/identity/application/ports';
 import { RecipientGateway } from '@app/notification-delivery/application/ports';
@@ -13,11 +14,12 @@ import { mergeUserPickerOptions } from './user-picker';
 
 @Component({
   selector: 'app-admin-dashboard-page',
-  imports: [Button, SendNotificationForm, ScheduledTable, NotificationHistoryTable],
+  imports: [RouterLink, Button, SendNotificationForm, ScheduledTable, NotificationHistoryTable],
   templateUrl: './admin-dashboard.page.html',
   styleUrl: './admin-dashboard.page.css',
 })
 export class AdminDashboardPage implements OnInit {
+  protected readonly ROLES = ROLES;
   protected readonly authStore = inject(AuthStore);
   private readonly authGateway = inject(AuthGateway);
   private readonly recipientGateway = inject(RecipientGateway);

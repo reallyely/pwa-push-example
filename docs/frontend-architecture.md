@@ -160,6 +160,25 @@ frontend/
           scheduled-table.ts/.html/.css             # admin: pending list, emits `cancel`
           notification-history-table.ts/.html/.css  # admin: read-only sent/failed/canceled list
 
+      training/                     # bounded context — mirrors docs/domain-model.md's
+                                    # "Question — implemented slice" section
+        application/
+          ports.ts                 # QuestionGateway (abstract class) + QuestionView/
+                                    # CreateQuestionRequest/AnswerFormatRequest/AnswerFormatView
+          questions.store.ts       # QuestionsStore — plain class, `questions` signal,
+                                    # load()/create() (create reloads the list after saving,
+                                    # same reload-after-mutation pattern AdminNotificationsStore uses)
+        infrastructure/
+          http-question-gateway.ts # @Injectable() implements QuestionGateway via HttpClient
+        interface/
+          question-form.ts/.html/.css  # researcher authoring form: prompt + answer-format
+                                    # picker (FreeInput/Likert/Choice), conditional scale-point/
+                                    # option list editors, a client-side `<name>` parameter
+                                    # preview (mirrors domain/training's parameterNames parsing
+                                    # for immediate feedback, not a shared import — there's no
+                                    # Question instance to call the real getter on yet)
+          question-list.ts/.html/.css  # read-only table: prompt, answer-format summary, parameters
+
       shell/                       # NOT a bounded context — see "shell/ is not a bounded
                                     # context" below
         client/
@@ -169,9 +188,12 @@ frontend/
         admin/
           admin.routes.ts          # ADMIN_ROUTES
           admin-login.page.ts      # wraps LoginForm, Researcher|Trainer registration
-          admin-dashboard.page.ts/.html  # send form + scheduled table + history table
+          admin-dashboard.page.ts/.html  # send form + scheduled table + history table;
+                                    # links to /admin/questions for Researchers only
           user-picker.ts           # mergeUserPickerOptions() — merges identity's user list
                                     # with notification-delivery's recipient list
+          questions.page.ts/.html/.css  # wraps <app-question-form> + <app-question-list>,
+                                    # Researcher-only route
 
       infrastructure/              # generic technical helpers, zero domain knowledge — mirrors
                                     # docs/architecture.md's backend/infrastructure/'s role
@@ -363,6 +385,35 @@ or `interface/`.
   (`scheduled-table` emits `cancel` for the page to act on;
   `notification-history-table` is pure read-only display).
 
+### `training/` (mirrors [`docs/domain-model.md`](domain-model.md)'s "Question — implemented slice")
+
+- **`application/ports.ts`** — `QuestionGateway` (abstract class): `create`,
+  `list`. Also defines `QuestionView` (Response Model — `id`, `prompt`,
+  `answerFormat`, `parameterNames`, `isParameterized`, one-for-one with
+  `backend/training/interface/question-presenter.ts`'s `QuestionView`) and
+  `CreateQuestionRequest`/`AnswerFormatRequest`, the discriminated-union wire
+  shape (`{kind:'FreeInput'}` / `{kind:'Likert', scale}` /
+  `{kind:'Choice', options, allowMultiple}`) one-for-one with
+  `create-question.ts`'s own `AnswerFormatRequest`.
+- **`application/questions.store.ts`** — `QuestionsStore`: a `questions`
+  signal, `load()`, and `create()` (reloads the list after saving, same
+  reload-after-mutation shape `AdminNotificationsStore` uses).
+- **`infrastructure/http-question-gateway.ts`** — `HttpQuestionGateway`,
+  `HttpClient` adapter, `withCredentials: true`.
+- **`interface/question-form.ts`** — the researcher's authoring form: prompt
+  textarea, an answer-format `p-select` (Free input / Likert scale /
+  Choice), and conditional list editors — Likert reveals an ordered
+  add/remove list of scale-point labels, Choice reveals an add/remove list
+  of options plus an "allow selecting more than one" checkbox. Runs its own
+  small `<name>` placeholder regex over the live prompt text to show a
+  "Parameters detected: …" hint as the researcher types — a client-side
+  mirror of `domain/training`'s `Question#parameterNames` parsing rather
+  than a shared import, since there's no `Question` instance to call the
+  real getter on until the form is submitted.
+- **`interface/question-list.ts`** — read-only table: prompt, an
+  answer-format summary tag (e.g. "Likert (5-point)", "Choice (3 options,
+  multi-select)"), and any detected parameters.
+
 ## Routing
 
 ```
@@ -376,10 +427,17 @@ shell/client/client.routes.ts (CLIENT_ROUTES):
   'notification/:id'  -> NotificationDetailPage     [sessionGuard('/login')]
 
 shell/admin/admin.routes.ts (ADMIN_ROUTES):
-  'login' -> AdminLoginPage                                                 (no guard)
-  ''      -> AdminDashboardPage   [sessionGuard('/admin/login'),
-                                    rolesGuard([Researcher, Trainer], '/admin/login')]
+  'login'     -> AdminLoginPage                                             (no guard)
+  ''          -> AdminDashboardPage   [sessionGuard('/admin/login'),
+                                        rolesGuard([Researcher, Trainer], '/admin/login')]
+  'questions' -> QuestionsPage        [sessionGuard('/admin/login'),
+                                        rolesGuard([Researcher], '/admin/login')]
 ```
+
+`questions` is Researcher-only (unlike the shared `''` dashboard route) —
+matches `domain-model.md`'s "Question — implemented slice" backend gating
+(`@Roles('Researcher')` on `questions.controller.ts`), since Question
+authoring isn't a Trainer capability.
 
 An unauthenticated visit to a guarded route redirects to that area's own
 `login` route; a logged-in Participant hitting `/admin` fails `rolesGuard`
