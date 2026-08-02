@@ -1,0 +1,21 @@
+{
+  "name": "domain",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'src/**/*.test.ts'"
+  },
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "exports": {
+    "./identity": {
+      "types": "./src/identity/index.ts",
+      "default": "./src/identity/index.ts"
+    },
+    "./notification-delivery": {
+      "types": "./src/notification-delivery/index.ts",
+      "default": "./src/notification-delivery/index.ts"
+    }
+  }
+}

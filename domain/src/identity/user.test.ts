@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { User } from './user.js';
+import { User } from './user.ts';
 
 function validProps(overrides: Record<string, unknown> = {}) {
   return {

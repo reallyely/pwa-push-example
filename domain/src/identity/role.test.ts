@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { ROLES, ALL, isValid } from './role.js';
+import { ROLES, ALL, isValid } from './role.ts';
 
 describe('ROLES', () => {
   test('contains the closed set of roles', () => {

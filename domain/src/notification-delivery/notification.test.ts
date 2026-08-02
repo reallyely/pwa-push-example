@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { Notification } from './notification.js';
-import { STATUSES } from './notification-status.js';
+import { Notification } from './notification.ts';
+import { STATUSES } from './notification-status.ts';
 
 const future = () => new Date(Date.now() + 60_000);
 const past = () => new Date(Date.now() - 60_000);

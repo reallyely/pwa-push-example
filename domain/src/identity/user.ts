@@ -1,5 +1,5 @@
-import { isValid as isValidRole } from './role.js';
-import type { Role } from './role.js';
+import { isValid as isValidRole } from '#identity/role';
+import type { Role } from '#identity/role';
 
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

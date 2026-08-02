@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { Session } from './session.js';
+import { Session } from './session.ts';
 
 describe('Session.issue', () => {
   test('requires a non-empty token', () => {
