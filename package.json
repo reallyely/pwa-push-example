@@ -1,37 +1,10 @@
 {
   "name": "pwa-test",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/main.js",
+  "private": true,
+  "workspaces": ["backend", "domain", "frontend"],
   "scripts": {
-    "build": "tsc",
-    "prestart": "npm run build",
-    "start": "node dist/main.js",
-    "pretest": "npm run build",
-    "test": "node --test 'dist/**/*.test.js'"
-  },
-  "keywords": [],
-  "type": "module",
-  "imports": {
-    "#sqlite": "./dist/infrastructure/sqlite.js",
-    "#notification-delivery/*": "./dist/notification-delivery/*",
-    "#identity/*": "./dist/identity/*"
-  },
-  "dependencies": {
-    "@nestjs/common": "^11.1.6",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/core": "^11.1.6",
-    "@nestjs/platform-express": "^11.1.6",
-    "@nestjs/schedule": "^6.0.0",
-    "dotenv": "^17.4.2",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "web-push": "^3.6.7"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.1.2",
-    "@types/web-push": "^3.6.4",
-    "typescript": "5.9.3"
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "start": "npm run build --workspace=frontend && npm run start --workspace=backend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=domain"
   }
 }

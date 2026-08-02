@@ -2,16 +2,18 @@
 
 A live version of this app is available https://pwa-test.fly.dev/
 
-Minimal demo: an installable PWA client that registers a username and subscribes to
-push notifications, an admin dashboard that can send a push to a specific user, and
-one NestJS server backing both. Registered users/subscriptions are persisted to
+Minimal demo: an installable PWA client where a Participant registers with an
+email/password and subscribes to push notifications, an admin dashboard where a
+Researcher/Trainer can send a push to a specific user, and one NestJS server (serving
+a built Angular SPA) backing both. Registered users/subscriptions are persisted to
 SQLite on disk (see [Persistence](#persistence) below), so they survive server
 restarts and redeploys.
 
-- Client app: `/` — register a username, grant notification permission, install to
-  home screen.
-- Admin dashboard: `/admin` — pick a registered user, send them a push immediately or
-  schedule one for a future date/time (see [Scheduled notifications](#scheduled-notifications)).
+- Client app: `/` — register (email/password, Participant role), grant notification
+  permission, install to home screen.
+- Admin dashboard: `/admin` — register/log in as a Researcher or Trainer, pick a
+  registered user, send them a push immediately or schedule one for a future
+  date/time (see [Scheduled notifications](#scheduled-notifications)).
 
 
 ---
@@ -24,8 +26,12 @@ restarts and redeploys.
 > about the push-notification bounded context.
 
 > [!info]
-> Read [architecture.md](architecture.md) for how new capability gets added to this app —
+> Read [architecture.md](docs/architecture.md) for how new capability gets added to this app —
 > the folder architecture and per-bounded-context doc template every new context follows.
+
+> [!info]
+> Read [frontend-architecture.md](docs/frontend-architecture.md) for the Angular SPA's own
+> folder architecture and layering rules.
 
 ## Run locally
 
@@ -34,9 +40,23 @@ npm install
 npm start
 ```
 
-Open `http://localhost:3000` in a desktop browser to register/subscribe (localhost
-counts as a secure context, so push works there without HTTPS). Open
-`http://localhost:3000/admin` in another tab to send a push to that user.
+This builds and serves everything — backend and the Angular app — through the NestJS
+server on port 3000. Open `http://localhost:3000` in a desktop browser to
+register/subscribe (localhost counts as a secure context, so push works there without
+HTTPS). Open `http://localhost:3000/admin` in another tab to send a push to that user.
+
+For active frontend development, run two dev servers instead so Angular's build
+watches and rebuilds on save:
+
+```bash
+npm start                       # terminal 1 — backend, :3000
+npm start --workspace=frontend  # terminal 2 — Angular dev server, :4200
+```
+
+Open `http://localhost:4200` — `frontend/proxy.conf.json` transparently proxies
+`/api/*` requests to the backend on :3000, so the browser only ever sees one origin
+and no CORS configuration is needed (see
+[frontend-architecture.md](docs/frontend-architecture.md#dev-workflow)).
 
 To test **installing on a phone** and receiving pushes with the app closed, you need
 a real HTTPS URL reachable from the phone — see Deploy below.
