@@ -1,9 +1,14 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { InputText } from 'primeng/inputtext';
+import { Password } from 'primeng/password';
+import { Select } from 'primeng/select';
+import { Button } from 'primeng/button';
+import { Message } from 'primeng/message';
 import type { Role } from 'domain/identity';
-import { AuthStore } from '../application/auth.store';
-import type { AuthenticatedUser } from '../application/ports';
+import { AuthStore } from '@app/identity/application/auth.store';
+import type { AuthenticatedUser } from '@app/identity/application/ports';
 
 type Mode = 'login' | 'register';
 
@@ -17,7 +22,7 @@ function extractErrorMessage(err: unknown): string {
 
 @Component({
   selector: 'app-login-form',
-  imports: [FormsModule],
+  imports: [FormsModule, InputText, Password, Select, Button, Message],
   templateUrl: './login-form.html',
   styleUrl: './login-form.css',
 })
@@ -36,6 +41,7 @@ export class LoginForm {
 
   readonly showRolePicker = computed(() => this.allowedRegisterRoles().length > 1);
   readonly heading = computed(() => (this.mode() === 'login' ? 'Log In' : 'Create Account'));
+  readonly roleOptions = computed(() => this.allowedRegisterRoles().map((role) => ({ label: role, value: role })));
 
   toggleMode(): void {
     this.mode.set(this.mode() === 'login' ? 'register' : 'login');

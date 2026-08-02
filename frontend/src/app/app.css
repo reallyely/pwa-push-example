@@ -1,0 +1,14 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* router-outlet is a real (empty) sibling element in the DOM; excluding it
+   from layout keeps app-shell's flex gap from counting it as an extra item. */
+router-outlet {
+  display: none;
+}

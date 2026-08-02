@@ -1,11 +1,12 @@
-h1 {
-  color: #4f46e5;
+.notification-card {
+  max-width: 28rem;
 }
 
 dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.25rem 1rem;
+  gap: 0.4rem 1rem;
+  align-items: center;
 }
 
 dt {
@@ -14,8 +15,4 @@ dt {
 
 dd {
   margin: 0;
-}
-
-.error {
-  color: #b91c1c;
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, type Observable } from 'rxjs';
 import type { Role } from 'domain/identity';
-import { AuthGateway, type AuthenticatedUser } from '../application/ports';
+import { AuthGateway, type AuthenticatedUser } from '@app/identity/application/ports';
 
 interface AuthResponseDto {
   id: string;

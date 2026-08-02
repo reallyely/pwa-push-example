@@ -1,9 +1,11 @@
-<p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
-<button type="button" (click)="logout()">Log out</button>
+<div class="page">
+  <p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
+  <p-button type="button" label="Log out" severity="secondary" (onClick)="logout()" />
 
-<p>Select a registered user and send them a push notification.</p>
-<app-send-notification-form [users]="users()" />
+  <p>Select a registered user and send them a push notification.</p>
+  <app-send-notification-form [users]="users()" />
 
-<app-scheduled-table [notifications]="notificationsStore.scheduled()" (cancel)="onCancel($event)" />
+  <app-scheduled-table [notifications]="notificationsStore.scheduled()" (cancel)="onCancel($event)" />
 
-<app-notification-history-table [notifications]="notificationsStore.history()" />
+  <app-notification-history-table [notifications]="notificationsStore.history()" />
+</div>

@@ -1,8 +1,12 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
-import { EnablePushNotifications } from '../application/enable-push-notifications';
+import { Card } from 'primeng/card';
+import { Button } from 'primeng/button';
+import { Message } from 'primeng/message';
+import { EnablePushNotifications } from '@app/notification-delivery/application/enable-push-notifications';
 
 @Component({
   selector: 'app-enable-notifications-card',
+  imports: [Card, Button, Message],
   templateUrl: './enable-notifications-card.html',
   styleUrl: './enable-notifications-card.css',
 })
@@ -40,6 +44,21 @@ export class EnableNotificationsCard implements OnInit {
   protected readonly canEnable = computed(() => {
     const status = this.status();
     return status === 'idle' || status === 'denied' || status === 'error';
+  });
+
+  protected readonly messageSeverity = computed(() => {
+    switch (this.status()) {
+      case 'enabled':
+        return 'success';
+      case 'error':
+      case 'denied':
+        return 'error';
+      case 'unsupported':
+      case 'needs-install':
+        return 'warn';
+      default:
+        return 'info';
+    }
   });
 
   ngOnInit(): void {

@@ -6,7 +6,7 @@ import {
   type NotificationView,
   type ScheduleNotificationRequest,
   type SendNotificationRequest,
-} from '../application/ports';
+} from '@app/notification-delivery/application/ports';
 
 @Injectable({ providedIn: 'root' })
 export class HttpNotificationGateway implements NotificationGateway {

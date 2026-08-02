@@ -1,11 +1,9 @@
-<section class="enable-notifications-card">
-  <h2>Push Notifications</h2>
-
+<p-card header="Push Notifications" styleClass="enable-notifications-card">
   @if (message(); as msg) {
-    <p class="status">{{ msg }}</p>
+    <p-message [severity]="messageSeverity()" styleClass="status">{{ msg }}</p-message>
   }
 
   @if (canEnable()) {
-    <button type="button" (click)="enable()">Enable notifications</button>
+    <p-button type="button" label="Enable notifications" (onClick)="enable()" />
   }
-</section>
+</p-card>

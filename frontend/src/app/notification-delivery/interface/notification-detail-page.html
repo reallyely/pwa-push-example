@@ -4,22 +4,23 @@
   }
   @case ('loaded') {
     @if (notification(); as n) {
-      <h1>{{ n.title }}</h1>
-      @if (n.icon) {
-        <img [src]="n.icon" alt="" width="48" height="48" />
-      }
-      <p>{{ n.body }}</p>
-      <dl>
-        <dt>Status</dt>
-        <dd>{{ n.status }}</dd>
-        <dt>Send at</dt>
-        <dd>{{ n.sendAt }}</dd>
-        <dt>Sent at</dt>
-        <dd>{{ n.sentAt || '—' }}</dd>
-      </dl>
+      <p-card [header]="n.title" styleClass="notification-card">
+        @if (n.icon) {
+          <img [src]="n.icon" alt="" width="48" height="48" />
+        }
+        <p>{{ n.body }}</p>
+        <dl>
+          <dt>Status</dt>
+          <dd><p-tag [value]="n.status" /></dd>
+          <dt>Send at</dt>
+          <dd>{{ n.sendAt }}</dd>
+          <dt>Sent at</dt>
+          <dd>{{ n.sentAt || '—' }}</dd>
+        </dl>
+      </p-card>
     }
   }
   @default {
-    <p class="error">{{ errorMessage() }}</p>
+    <p-message severity="error">{{ errorMessage() }}</p-message>
   }
 }

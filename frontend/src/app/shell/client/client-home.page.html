@@ -1,4 +1,6 @@
-<p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
-<button type="button" (click)="logout()">Log out</button>
+<div class="page">
+  <p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
+  <p-button type="button" label="Log out" severity="secondary" (onClick)="logout()" />
 
-<app-enable-notifications-card />
+  <app-enable-notifications-card />
+</div>

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Router, type CanActivateFn, type UrlTree } from '@angular/router';
-import { AuthStore } from '../application/auth.store';
+import { AuthStore } from '@app/identity/application/auth.store';
 
 export function sessionGuard(loginPath: string): CanActivateFn {
   return async (): Promise<boolean | UrlTree> => {

@@ -1,6 +1,8 @@
 import { ApplicationConfig, inject, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
 import { AuthGateway } from './identity/application/ports';
@@ -18,6 +20,11 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withFetch()),
+    providePrimeNG({
+      theme: { preset: Aura },
+      license:
+        'eyJpZCI6IjA1YjUyNjNmLTUxOTQtNGQ3Ny1iZjIyLTNjMGY4NTk2ODIxNCIsInByb2R1Y3QiOiJwcmltZXVpIiwidGllciI6ImNvbW11bml0eSIsInR5cGUiOiJkZXYiLCJpYXQiOjE3ODU2ODI1MjQsImV4cCI6MTgxNzIxODUyNH0.4q0mTaHvFCj_7QHCpSQ1w0a4gTuf8GX49MD2kmAuits4UHfcDQ17af1Gz6lJ0318piCFacY1yfVBCjG-oo1JBQ',
+    }),
 
     { provide: AuthGateway, useClass: HttpAuthGateway },
     { provide: AuthStore, useFactory: () => new AuthStore(inject(AuthGateway)) },

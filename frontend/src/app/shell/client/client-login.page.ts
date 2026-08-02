@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { ROLES } from 'domain/identity';
-import { LoginForm } from '../../identity/interface/login-form';
-import type { AuthenticatedUser } from '../../identity/application/ports';
+import { LoginForm } from '@app/identity/interface/login-form';
+import type { AuthenticatedUser } from '@app/identity/application/ports';
 
 @Component({
   selector: 'app-client-login-page',

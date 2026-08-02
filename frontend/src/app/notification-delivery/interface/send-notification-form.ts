@@ -1,8 +1,14 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AdminNotificationsStore } from '../application/admin-notifications.store';
-import type { ScheduleNotificationRequest, SendNotificationRequest } from '../application/ports';
+import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { Checkbox } from 'primeng/checkbox';
+import { DatePicker } from 'primeng/datepicker';
+import { Button } from 'primeng/button';
+import { Message } from 'primeng/message';
+import { AdminNotificationsStore } from '@app/notification-delivery/application/admin-notifications.store';
+import type { ScheduleNotificationRequest, SendNotificationRequest } from '@app/notification-delivery/application/ports';
 
 export interface UserPickerOption {
   id: string;
@@ -19,7 +25,7 @@ function extractErrorMessage(err: unknown): string {
 
 @Component({
   selector: 'app-send-notification-form',
-  imports: [FormsModule],
+  imports: [FormsModule, InputText, Select, Checkbox, DatePicker, Button, Message],
   templateUrl: './send-notification-form.html',
   styleUrl: './send-notification-form.css',
 })
@@ -33,11 +39,13 @@ export class SendNotificationForm {
   readonly body = signal('');
   readonly icon = signal('');
   readonly scheduling = signal(false);
-  readonly sendAt = signal('');
+  readonly sendAt = signal<Date | null>(null);
   readonly submitting = signal(false);
   readonly status = signal<string | null>(null);
 
   readonly submitLabel = computed(() => (this.scheduling() ? 'Schedule Push' : 'Send Push'));
+  readonly statusSeverity = computed(() => (this.status()?.startsWith('Failed') ? 'error' : 'success'));
+  readonly userOptions = computed(() => this.users().map((u) => ({ label: u.label, value: u.id })));
 
   submit(): void {
     const username = this.selectedUserId();
@@ -73,14 +81,15 @@ export class SendNotificationForm {
   }
 
   private submitSchedule(username: string): void {
-    if (!this.sendAt()) return;
+    const sendAt = this.sendAt();
+    if (!sendAt) return;
 
     const request: ScheduleNotificationRequest = {
       username,
       title: this.title(),
       body: this.body() || undefined,
       icon: this.icon() || undefined,
-      sendAt: new Date(this.sendAt()).toISOString(),
+      sendAt: sendAt.toISOString(),
     };
 
     this.status.set('Scheduling...');

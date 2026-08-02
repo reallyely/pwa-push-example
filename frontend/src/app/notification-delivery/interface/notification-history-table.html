@@ -1,6 +1,6 @@
 <h2>Notification History</h2>
-<table>
-  <thead>
+<p-table [value]="notifications()">
+  <ng-template #header>
     <tr>
       <th>Sent to</th>
       <th>Sent at</th>
@@ -8,22 +8,19 @@
       <th>Message</th>
       <th>Status</th>
     </tr>
-  </thead>
-  <tbody>
-    @if (notifications().length === 0) {
-      <tr>
-        <td colspan="5">No notifications sent yet</td>
-      </tr>
-    } @else {
-      @for (n of notifications(); track n.id) {
-        <tr>
-          <td>{{ n.username }}</td>
-          <td>{{ n.sentAt ? (n.sentAt | date: 'medium') : '—' }}</td>
-          <td>{{ n.title }}</td>
-          <td>{{ n.body }}</td>
-          <td>{{ n.status }}</td>
-        </tr>
-      }
-    }
-  </tbody>
-</table>
+  </ng-template>
+  <ng-template #body let-n>
+    <tr>
+      <td>{{ n.username }}</td>
+      <td>{{ n.sentAt ? (n.sentAt | date: 'medium') : '—' }}</td>
+      <td>{{ n.title }}</td>
+      <td>{{ n.body }}</td>
+      <td><p-tag [value]="n.status" [severity]="statusSeverity(n.status)" /></td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="5">No notifications sent yet</td>
+    </tr>
+  </ng-template>
+</p-table>

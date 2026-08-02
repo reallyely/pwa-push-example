@@ -1,50 +1,47 @@
 <form (ngSubmit)="submit()" novalidate>
   <h2>{{ heading() }}</h2>
 
-  <label>
-    Email
-    <input
-      type="email"
-      name="email"
-      [ngModel]="email()"
-      (ngModelChange)="email.set($event)"
-      autocomplete="email"
-      required
-    />
-  </label>
+  <label for="email">Email</label>
+  <input
+    pInputText
+    id="email"
+    type="email"
+    name="email"
+    [ngModel]="email()"
+    (ngModelChange)="email.set($event)"
+    autocomplete="email"
+    required
+  />
 
-  <label>
-    Password
-    <input
-      type="password"
-      name="password"
-      [ngModel]="password()"
-      (ngModelChange)="password.set($event)"
-      [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
-      required
-    />
-  </label>
+  <label for="password">Password</label>
+  <p-password
+    inputId="password"
+    [ngModel]="password()"
+    (ngModelChange)="password.set($event)"
+    [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+    [feedback]="false"
+    [toggleMask]="true"
+    [fluid]="true"
+    required
+  />
 
   @if (mode() === 'register' && showRolePicker()) {
-    <label>
-      Role
-      <select name="role" [ngModel]="selectedRole()" (ngModelChange)="selectedRole.set($event)">
-        @for (role of allowedRegisterRoles(); track role) {
-          <option [value]="role">{{ role }}</option>
-        }
-      </select>
-    </label>
+    <label for="role">Role</label>
+    <p-select
+      inputId="role"
+      [options]="roleOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="selectedRole()"
+      (ngModelChange)="selectedRole.set($event)"
+    />
   }
 
-  <button type="submit" [disabled]="submitting()">
-    {{ mode() === 'login' ? 'Log In' : 'Create Account' }}
-  </button>
+  <p-button type="submit" [label]="mode() === 'login' ? 'Log In' : 'Create Account'" [disabled]="submitting()" [loading]="submitting()" />
 
-  <button type="button" class="link-button" (click)="toggleMode()">
-    {{ mode() === 'login' ? 'Need an account? Create one' : 'Already have an account? Log in' }}
-  </button>
+  <p-button type="button" [text]="true" [label]="mode() === 'login' ? 'Need an account? Create one' : 'Already have an account? Log in'" (onClick)="toggleMode()" />
 
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p-message severity="error">{{ error() }}</p-message>
   }
 </form>

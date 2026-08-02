@@ -2,51 +2,22 @@ form {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-top: 1.5rem;
+  max-width: 24rem;
 }
 
 label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
   font-size: 0.85rem;
   font-weight: 600;
 }
 
 .checkbox-label {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
 }
 
-.checkbox-label input {
-  padding: 0;
-}
-
-input,
-select,
-button {
-  font-size: 1rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.4rem;
-  border: 1px solid #ccc;
-}
-
-button[type='submit'] {
-  margin-top: 0.5rem;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-button[type='submit']:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
 .status {
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-  white-space: pre-wrap;
+  display: block;
+  margin-top: 0.5rem;
 }

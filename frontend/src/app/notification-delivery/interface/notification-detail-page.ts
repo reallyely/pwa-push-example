@@ -1,11 +1,15 @@
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { NotificationGateway, type NotificationView } from '../application/ports';
+import { Card } from 'primeng/card';
+import { Tag } from 'primeng/tag';
+import { Message } from 'primeng/message';
+import { NotificationGateway, type NotificationView } from '@app/notification-delivery/application/ports';
 
 type LoadState = 'loading' | 'loaded' | 'unauthorized' | 'forbidden' | 'error';
 
 @Component({
   selector: 'app-notification-detail-page',
+  imports: [Card, Tag, Message],
   templateUrl: './notification-detail-page.html',
   styleUrl: './notification-detail-page.css',
 })

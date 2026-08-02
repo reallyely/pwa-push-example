@@ -30,6 +30,28 @@ app:
 - Built via the Angular CLI's `application` builder (`ng build`), which uses
   **esbuild** under the hood — no separate bundler config in this repo.
 
+## UI component library
+
+`frontend/` uses **PrimeNG `^22.0.0`** (the only PrimeNG major aligned with
+Angular `^22.1.0`) for interactive controls — `p-inputtext`/`p-password`,
+`p-select`, `p-checkbox`, `p-datepicker`, `p-button`, `p-table`, `p-card`,
+`p-tag`, `p-message` — across `identity/interface/login-form` and every
+`notification-delivery/interface/` form/table/card. Theming is the **Aura**
+preset from `@primeuix/themes`, wired via `providePrimeNG({ theme: { preset:
+Aura }, ... })` in `app.config.ts`; `primeicons/primeicons.css` is imported
+globally in `styles.css`.
+
+**Licensing.** As of PrimeNG 22, the library verifies a signed license key at
+app-init and renders a visible "Invalid PrimeUI License" banner if none is
+configured or it's expired — this applies even to the previously-MIT core
+components, not just the paid Pro tier. `app.config.ts`'s `providePrimeNG`
+call carries a **free Community license key** (qualifies under PrimeTek's
+Community terms: primeui.dev/licenses/community), valid **2026-08-02 →
+2027-08-02**. Renew before expiry at the same URL and swap the `license`
+string in `app.config.ts` — there's no build-time/env-var indirection for it
+today, matching the fact `frontend/` has no other env-var mechanism (it's a
+plain static SPA bundle, see "Language & runtime" above).
+
 **Two different `public/` directories — don't confuse them.** The repo root
 used to have a top-level `public/` (the old hand-rolled `public/client/` +
 `public/admin/` static sites) — that directory is deleted; this rewrite
@@ -55,6 +77,27 @@ bundled/processed by esbuild, so unlike the rest of `frontend/src/` it can't
 difference from the old `public/client/sw.js` is the `notificationclick`
 target: `/notification/:id` (an Angular route) instead of the old
 `/notification.html?id=`.
+
+## Path aliases
+
+`tsconfig.json` declares one path alias: `@app/*` → `src/app/*`. Any import
+that would otherwise climb out of its own directory (`../`, `../../`) uses
+this alias instead — e.g. `notification-delivery/infrastructure/`'s adapters
+import their own context's ports as `@app/notification-delivery/application/ports`,
+and `shell/`'s pages reach into `identity/`/`notification-delivery/` as
+`@app/identity/application/auth.store`. This mirrors the existing
+`domain/identity` / `domain/notification-delivery` package-import style
+(`domain/`'s `package.json` `exports`, see `docs/architecture.md`) so every
+cross-context or cross-layer import states which context and layer it comes
+from at a glance, rather than requiring the reader to count `../` segments.
+Imports that stay within the same directory (`./ports`, `./client-login.page`)
+are left as plain relative imports — the directory is already unambiguous.
+
+Angular's esbuild-based builder needs `baseUrl` set alongside `paths` to
+resolve the alias (unlike plain `tsc`, which supports path-mapping without a
+`baseUrl` since TypeScript 4.1); `ignoreDeprecations: "6.0"` silences the
+resulting `TS5101` (`baseUrl` deprecated, removed in TypeScript 7.0) until
+the toolchain offers a baseUrl-free way to satisfy the builder.
 
 ## Folder architecture
 

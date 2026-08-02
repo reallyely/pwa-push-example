@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { from, type Observable } from 'rxjs';
 import type { PushSubscriptionJSON } from 'domain/notification-delivery';
-import { PushSubscriptionPort } from '../application/ports';
-import { isIOS, isStandalone } from '../../infrastructure/browser-environment';
-import { urlBase64ToUint8Array } from '../../infrastructure/url-base64';
+import { PushSubscriptionPort } from '@app/notification-delivery/application/ports';
+import { isIOS, isStandalone } from '@app/infrastructure/browser-environment';
+import { urlBase64ToUint8Array } from '@app/infrastructure/url-base64';
 
 @Injectable({ providedIn: 'root' })
 export class BrowserPushGateway implements PushSubscriptionPort {

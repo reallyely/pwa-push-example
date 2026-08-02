@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, type Observable } from 'rxjs';
 import type { PushSubscriptionJSON } from 'domain/notification-delivery';
-import { RecipientGateway, type RecipientView } from '../application/ports';
+import { RecipientGateway, type RecipientView } from '@app/notification-delivery/application/ports';
 
 @Injectable({ providedIn: 'root' })
 export class HttpRecipientGateway implements RecipientGateway {

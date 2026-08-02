@@ -1,7 +1,7 @@
 import type { Routes } from '@angular/router';
 import { ROLES } from 'domain/identity';
-import { sessionGuard } from '../../identity/interface/session.guard';
-import { rolesGuard } from '../../identity/interface/roles.guard';
+import { sessionGuard } from '@app/identity/interface/session.guard';
+import { rolesGuard } from '@app/identity/interface/roles.guard';
 import { AdminLoginPage } from './admin-login.page';
 import { AdminDashboardPage } from './admin-dashboard.page';
 
