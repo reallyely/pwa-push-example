@@ -1,0 +1,53 @@
+<form (ngSubmit)="submit()" novalidate>
+  <label for="title">Title</label>
+  <input
+    pInputText
+    id="title"
+    name="title"
+    [ngModel]="title()"
+    (ngModelChange)="title.set($event)"
+    required
+  />
+
+  <label for="description">Description</label>
+  <textarea
+    pTextarea
+    id="description"
+    name="description"
+    rows="3"
+    [ngModel]="description()"
+    (ngModelChange)="description.set($event)"
+  ></textarea>
+
+  <label for="dateTime">Date &amp; time</label>
+  <p-datepicker
+    inputId="dateTime"
+    name="dateTime"
+    [ngModel]="dateTime()"
+    (ngModelChange)="dateTime.set($event)"
+    [showTime]="true"
+    hourFormat="24"
+    [showIcon]="true"
+    required
+  />
+
+  <label for="trainerId">Trainer</label>
+  <p-select
+    inputId="trainerId"
+    [options]="trainerOptions()"
+    optionLabel="label"
+    optionValue="value"
+    [placeholder]="trainerOptions().length === 0 ? 'No trainers registered yet' : 'Select a trainer'"
+    [disabled]="trainerOptions().length === 0"
+    [ngModel]="trainerId()"
+    (ngModelChange)="trainerId.set($event)"
+    name="trainerId"
+    required
+  />
+
+  <p-button type="submit" label="Create Training" [disabled]="submitting()" [loading]="submitting()" />
+
+  @if (status(); as msg) {
+    <p-message [severity]="statusSeverity()" styleClass="status">{{ msg }}</p-message>
+  }
+</form>

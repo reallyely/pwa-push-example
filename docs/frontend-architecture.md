@@ -36,7 +36,10 @@ app:
 Angular `^22.1.0`) for interactive controls — `p-inputtext`/`p-password`,
 `p-select`, `p-checkbox`, `p-datepicker`, `p-button`, `p-table`, `p-card`,
 `p-tag`, `p-message` — across `identity/interface/login-form` and every
-`notification-delivery/interface/` form/table/card. Theming is the **Aura**
+`notification-delivery/interface/` form/table/card, plus **`p-menubar`** for
+`shell/admin/admin-shell.page.ts`'s persistent nav bar (a `MenuItem[]`
+built with `routerLink`s rather than `url`s, so it navigates through
+Angular's router instead of a full page load). Theming is the **Aura**
 preset from `@primeuix/themes`, wired via `providePrimeNG({ theme: { preset:
 Aura }, ... })` in `app.config.ts`; `primeicons/primeicons.css` is imported
 globally in `styles.css`.
@@ -137,15 +140,20 @@ frontend/
         application/
           ports.ts                 # RecipientGateway, NotificationGateway, PushSubscriptionPort
                                     # (abstract classes) + NotificationView/RecipientView/
-                                    # Send-/ScheduleNotificationRequest response/request models
+                                    # Send-/ScheduleNotificationRequest response/request models.
+                                    # RecipientGateway#listUsers and NotificationGateway#send/
+                                    # schedule/cancel/list/listScheduled back the admin
+                                    # send/history/scheduled UI that shell/admin/ used to compose
+                                    # (removed as a POC — see notification-detail-page.ts below for
+                                    # the one caller NotificationGateway has left, #get); the
+                                    # backend routes and these port methods stay, unused by any
+                                    # frontend UI today, rather than reshaping a contract still
+                                    # backed by live endpoints
           enable-push-notifications.ts  # EnablePushNotifications — plain class, orchestrates
                                     # permission -> register SW -> subscribe -> RecipientGateway;
                                     # `status` signal (idle/unsupported/needs-install/
                                     # requesting-permission/subscribing/enabled/denied/error);
                                     # also owns the silent resubscribe-on-open behavior
-          admin-notifications.store.ts  # AdminNotificationsStore — plain class, scheduled/history
-                                    # signals + send/schedule/cancel, each followed by the matching
-                                    # list reload
         infrastructure/
           http-recipient-gateway.ts     # @Injectable() implements RecipientGateway via HttpClient
           http-notification-gateway.ts  # @Injectable() implements NotificationGateway via HttpClient
@@ -155,21 +163,32 @@ frontend/
           enable-notifications-card.ts/.html/.css   # reusable card: status message + Enable button
           notification-detail-page.ts/.html/.css    # routed page, `id` bound from the route's
                                     # :id param via withComponentInputBinding()
-          send-notification-form.ts/.html/.css      # admin: user picker + title/body/icon +
-                                    # schedule-for-later toggle
-          scheduled-table.ts/.html/.css             # admin: pending list, emits `cancel`
-          notification-history-table.ts/.html/.css  # admin: read-only sent/failed/canceled list
 
       training/                     # bounded context — mirrors docs/domain-model.md's
-                                    # "Question — implemented slice" section
+                                    # Question/Training/Enrollment & blackout window/Survey/
+                                    # Survey Response "implemented slice" sections
         application/
-          ports.ts                 # QuestionGateway (abstract class) + QuestionView/
-                                    # CreateQuestionRequest/AnswerFormatRequest/AnswerFormatView
+          ports.ts                 # QuestionGateway + TrainingGateway (as before), plus
+                                    # EnrollmentGateway, SurveyGateway, SurveyResponseGateway
+                                    # (abstract classes) and their View/Request types
           questions.store.ts       # QuestionsStore — plain class, `questions` signal,
-                                    # load()/create() (create reloads the list after saving,
-                                    # same reload-after-mutation pattern AdminNotificationsStore uses)
+                                    # load()/create() (create reloads the list after saving)
+          trainings.store.ts       # TrainingsStore — identical shape to QuestionsStore:
+                                    # `trainings` signal, load()/create() (create reloads the
+                                    # list after saving)
+          enrollment.store.ts      # EnrollmentStore — `trainingIds`/`blackoutWindows` signals,
+                                    # load(), enroll() (reloads after)
+          surveys.store.ts         # SurveysStore — identical shape to TrainingsStore:
+                                    # `surveys` signal, load()/create()
+          survey-response.store.ts # SurveyResponseStore — `current` signal (the in-progress
+                                    # response), open()/recordResourceAccess()/submit(), each
+                                    # updating `current` from the gateway's response
         infrastructure/
           http-question-gateway.ts # @Injectable() implements QuestionGateway via HttpClient
+          http-training-gateway.ts # @Injectable() implements TrainingGateway via HttpClient
+          http-enrollment-gateway.ts       # @Injectable() implements EnrollmentGateway
+          http-survey-gateway.ts           # @Injectable() implements SurveyGateway
+          http-survey-response-gateway.ts  # @Injectable() implements SurveyResponseGateway
         interface/
           question-form.ts/.html/.css  # researcher authoring form: prompt + answer-format
                                     # picker (FreeInput/Likert/Choice), conditional scale-point/
@@ -178,22 +197,79 @@ frontend/
                                     # for immediate feedback, not a shared import — there's no
                                     # Question instance to call the real getter on yet)
           question-list.ts/.html/.css  # read-only table: prompt, answer-format summary, parameters
+          training-form.ts/.html/.css  # researcher scheduling form: a PrimeNG p-datepicker
+                                    # ([showTime]="true") for dateTime + a p-select for
+                                    # trainerId, options passed in via a required
+                                    # `trainerOptions` input (the trainer list itself is
+                                    # composed one layer up, by shell/admin/trainings.page.ts)
+          training-list.ts/.html/.css  # read-only p-table: dateTime (formatted via DatePipe)
+                                    # and the matching trainer's email, resolved by looking up
+                                    # trainerId in the same trainerOptions input rather than a
+                                    # second HTTP call
+          survey-form.ts/.html/.css    # researcher authoring form: `trainingOptions`/
+                                    # `questionOptions` inputs (composed one layer up, same
+                                    # pattern as training-form's trainerOptions), a p-datepicker
+                                    # for sendDate, a question picker that reveals per-parameter
+                                    # inputs for a parameterized Question before adding it to the
+                                    # assignment list, and an add/remove resource-URL list
+          survey-list.ts/.html/.css    # read-only p-table: sendDate, resolved training label via
+                                    # trainingOptions, question/resource counts, a "View results"
+                                    # link per row
+          survey-fill.ts/.html/.css    # participant-facing: opens a SurveyResponse on init,
+                                    # renders each SurveyQuestion's real rendered prompt (calls
+                                    # domain/training's actual Question.renderPrompt, unlike
+                                    # question-form's client-side preview mirror, since a real
+                                    # Question + real parameterValues both exist here), an answer
+                                    # input matching each Question's AnswerFormat, resource links
+                                    # that call recordResourceAccess() on click, and Submit
+          survey-results.ts/.html/.css # researcher-facing: p-table of a survey's responses
+                                    # (who/when/status) with a per-row expand toggle showing raw
+                                    # answers — no aggregation/charting
 
       shell/                       # NOT a bounded context — see "shell/ is not a bounded
                                     # context" below
         client/
           client.routes.ts         # CLIENT_ROUTES
           client-login.page.ts     # wraps LoginForm, Participant-only registration
-          client-home.page.ts/.html # account info + <app-enable-notifications-card>
+          client-home.page.ts/.html # account info + <app-enable-notifications-card> +
+                                    # a "Register for a Training" link to /register
+          register.page.ts/.html/.css   # lists open Trainings (TrainingsStore) with an Enroll
+                                    # button per row, tagging rows already in
+                                    # EnrollmentStore.trainingIds() — any authenticated session
+          survey.page.ts/.html/.css     # wraps <app-survey-fill>, `:surveyId` bound via
+                                    # withComponentInputBinding() (mirrors
+                                    # notification-detail-page.ts's pattern)
         admin/
-          admin.routes.ts          # ADMIN_ROUTES
+          admin.routes.ts          # ADMIN_ROUTES: 'login' (no guard) + a '' parent route
+                                    # rendering AdminShellPage, guarded once
+                                    # (sessionGuard + rolesGuard([Researcher, Trainer])) for the
+                                    # whole subtree, with dashboard/questions/trainings/surveys/
+                                    # surveys/:id/results as its children — Researcher-only
+                                    # children add their own rolesGuard([Researcher]) on top
+          admin-shell.page.ts/.html/.css  # persistent layout: a semantic <nav> wrapping a
+                                    # PrimeNG <p-menubar>, `<router-outlet>` below it for the
+                                    # child route. `navItems` is a computed MenuItem[] —
+                                    # Dashboard always, Questions/Trainings/Surveys appended only
+                                    # when AuthStore.currentUser()?.role === Researcher — plus an
+                                    # `end`-template account readout (email + role) and a Log out
+                                    # button, so every admin page shares one nav/logout instead of
+                                    # each page repeating them
           admin-login.page.ts      # wraps LoginForm, Researcher|Trainer registration
-          admin-dashboard.page.ts/.html  # send form + scheduled table + history table;
-                                    # links to /admin/questions for Researchers only
-          user-picker.ts           # mergeUserPickerOptions() — merges identity's user list
-                                    # with notification-delivery's recipient list
+          admin-dashboard.page.ts/.html  # the '' child route: a one-line welcome readout from
+                                    # AuthStore — navigation and logout now live in
+                                    # admin-shell.page.ts, not repeated here
           questions.page.ts/.html/.css  # wraps <app-question-form> + <app-question-list>,
                                     # Researcher-only route
+          trainings.page.ts/.html/.css  # wraps <app-training-form> + <app-training-list>;
+                                    # injects TrainersStore directly for `trainerOptions` —
+                                    # Researcher-only route
+          surveys.page.ts/.html/.css    # wraps <app-survey-form> + <app-survey-list>; fetches
+                                    # TrainingsStore + QuestionsStore and hands them down as
+                                    # `trainingOptions`/`questionOptions` — Researcher-only route
+          survey-results.page.ts/.html/.css  # `:id` bound via withComponentInputBinding(),
+                                    # loads that survey's responses and wraps
+                                    # <app-survey-results> — Researcher-only route, keeps its own
+                                    # "Back to surveys" link since it isn't itself a nav destination
 
       infrastructure/              # generic technical helpers, zero domain knowledge — mirrors
                                     # docs/architecture.md's backend/infrastructure/'s role
@@ -223,8 +299,8 @@ Mirrors [`docs/architecture.md`](architecture.md)'s dependency rule:
   `Observable` from `rxjs` — reactive value primitives, not decorators or DI
   — but must otherwise stay plain: constructible with `new`, never
   `@Injectable`, never importing `@angular/common/http`, `@Component`, or
-  the Router. `AuthStore`, `EnablePushNotifications`, and
-  `AdminNotificationsStore` are all plain classes for this reason.
+  the Router. `AuthStore` and `EnablePushNotifications` are both plain
+  classes for this reason.
 - **One context never reaches into another's `infrastructure/` or
   `interface/`.** Cross-context calls go through the target context's
   `application/` layer only.
@@ -232,9 +308,9 @@ Mirrors [`docs/architecture.md`](architecture.md)'s dependency rule:
 ### Reconciling "plain class" with "one shared instance": `useFactory` in `app.config.ts`
 
 Angular's DI needs to hand out a single shared `AuthStore` (or
-`EnablePushNotifications`, or `AdminNotificationsStore`) instance app-wide —
-the login form, the guards, and every page reading `currentUser()` all need
-to see the same state — but these classes are deliberately not
+`EnablePushNotifications`) instance app-wide — the login form, the guards,
+and every page reading `currentUser()` all need to see the same state — but
+these classes are deliberately not
 `@Injectable()`. `app.config.ts` resolves that with a factory provider:
 
 ```ts
@@ -251,10 +327,10 @@ normally), but the class being constructed stays a plain, independently
 of "framework-free application layer" with "one DI-managed instance",
 applied on the Angular side. `app.config.ts` does this for every
 `application/` store/orchestrator in both contexts: `AuthStore`,
-`EnablePushNotifications`, `AdminNotificationsStore`. Ports (`AuthGateway`,
-`RecipientGateway`, `NotificationGateway`, `PushSubscriptionPort`) get a
-plain `useClass` binding to their `@Injectable()` `infrastructure/` adapter,
-same as any other Angular DI interface-to-implementation wiring.
+`EnablePushNotifications`. Ports (`AuthGateway`, `RecipientGateway`,
+`NotificationGateway`, `PushSubscriptionPort`) get a plain `useClass`
+binding to their `@Injectable()` `infrastructure/` adapter, same as any
+other Angular DI interface-to-implementation wiring.
 
 ## `shell/` is not a bounded context
 
@@ -270,21 +346,17 @@ The one thing `shell/`'s page components are allowed to do that a real
 bounded context's own `interface/` isn't: depend on more than one context's
 `application/` layer directly. `client-home.page.ts` injects identity's
 `AuthStore` and renders notification-delivery's
-`<app-enable-notifications-card>`. The clearer example is
-`shell/admin/admin-dashboard.page.ts`, which injects identity's `AuthStore`
-+ `AuthGateway` and notification-delivery's `AdminNotificationsStore` +
-`RecipientGateway` directly, then hands the merged result to
-`shell/admin/user-picker.ts`'s `mergeUserPickerOptions()` — a pure function
-that merges identity's `{id, email, role}[]` user list with
-notification-delivery's `{username, subscribed}[]` recipient list (matched
-by `recipient.username === user.id`) into the single labeled option list the
-admin dashboard's user `<select>` needs. That merge deliberately lives in
-`shell/admin/`, not inside either context's `application/`, because neither
-context should know about the other's data shape. This is the frontend
-analogue of the backend's `RegisterUser` calling `RegisterRecipient`
-directly (`docs/identity-model.md`'s "Relationship to other contexts") —
-application-to-application, never into another context's `infrastructure/`
-or `interface/`.
+`<app-enable-notifications-card>` — application-to-application, never into
+another context's `infrastructure/` or `interface/`, the frontend analogue
+of the backend's `RegisterUser` calling `RegisterRecipient` directly
+(`docs/identity-model.md`'s "Relationship to other contexts").
+
+`shell/admin/admin-shell.page.ts` is a narrower, single-context case of the
+same "shell composes, contexts don't" rule: it injects only identity's
+`AuthStore` (to decide which nav items a Researcher vs. a Trainer sees, and
+to log out) and renders the `<router-outlet>` its child routes fill in — it
+doesn't reach into `training/` or `notification-delivery/` at all, since
+building a nav bar and reading `currentUser()` doesn't require it.
 
 ## Context-by-context content
 
@@ -337,6 +409,12 @@ or `interface/`.
   `domain/notification-delivery`'s capitalized `NotificationStatus`, modeled
   as its own type rather than reused, same "wire shape gets its own type at
   the boundary" discipline `AuthenticatedUser` established).
+  `RecipientGateway#listUsers` and `NotificationGateway#send`/`schedule`/
+  `cancel`/`list`/`listScheduled` back the admin send/history/scheduled UI
+  `shell/admin/` used to compose — removed as a POC (see
+  `interface/notification-detail-page.ts` below for the one caller
+  `NotificationGateway` has left, `#get`). The backend routes and these port
+  methods stay; they're just unused by any frontend UI today.
 - **`application/enable-push-notifications.ts`** — `EnablePushNotifications`,
   the real orchestration use case (ported from the old
   `public/client/app.js`'s `enableNotifications()`/`subscribeAndSend()`):
@@ -349,11 +427,6 @@ or `interface/`.
   with no event to react to, so a returning, already-permitted user gets
   silently re-subscribed on every app open, swallowing failures rather than
   surfacing an error for a sync the user didn't initiate.
-- **`application/admin-notifications.store.ts`** — `AdminNotificationsStore`:
-  `scheduled`/`history` signals, and `send`/`schedule`/`cancel` methods that
-  each call the gateway then reload the relevant list — the same
-  reload-after-mutation orchestration `public/admin/app.js` used to perform
-  by hand after every send/schedule/cancel.
 - **`infrastructure/http-recipient-gateway.ts`**,
   **`infrastructure/http-notification-gateway.ts`** — `HttpClient` adapters,
   `withCredentials: true`, one-for-one with `recipients.controller.ts` /
@@ -377,13 +450,6 @@ or `interface/`.
   hand. Calls `NotificationGateway.get()` directly (no store) — a store
   wrapping one read with no other behavior would be exactly the hollow
   pass-through `docs/architecture.md`'s discipline warns against.
-- **`interface/send-notification-form.ts`**, **`scheduled-table.ts`**,
-  **`notification-history-table.ts`** — the admin dashboard's pieces,
-  mirroring `public/admin/app.js`'s single `#send-form` (user select,
-  title/body/icon, a "schedule for later" toggle that swaps the submit
-  label and reveals a `datetime-local` input) and its two tables
-  (`scheduled-table` emits `cancel` for the page to act on;
-  `notification-history-table` is pure read-only display).
 
 ### `training/` (mirrors [`docs/domain-model.md`](domain-model.md)'s "Question — implemented slice")
 
@@ -396,8 +462,7 @@ or `interface/`.
   `{kind:'Choice', options, allowMultiple}`) one-for-one with
   `create-question.ts`'s own `AnswerFormatRequest`.
 - **`application/questions.store.ts`** — `QuestionsStore`: a `questions`
-  signal, `load()`, and `create()` (reloads the list after saving, same
-  reload-after-mutation shape `AdminNotificationsStore` uses).
+  signal, `load()`, and `create()` (reloads the list after saving).
 - **`infrastructure/http-question-gateway.ts`** — `HttpQuestionGateway`,
   `HttpClient` adapter, `withCredentials: true`.
 - **`interface/question-form.ts`** — the researcher's authoring form: prompt
@@ -414,6 +479,153 @@ or `interface/`.
   answer-format summary tag (e.g. "Likert (5-point)", "Choice (3 options,
   multi-select)"), and any detected parameters.
 
+`training/` also carries the `Training` slice
+(mirrors [`docs/domain-model.md`](domain-model.md)'s "Training — implemented
+slice"):
+
+- **`application/ports.ts`** (Training additions) — `TrainingGateway`
+  (abstract class): `create`, `list` — same two methods `QuestionGateway`
+  has (no `get`, matching what the UI uses). Also defines `TrainingView`
+  (`id`, `title`, `description` optional, `dateTime` as an ISO string,
+  `trainerId`) and `CreateTrainingRequest` (`title`, `description` optional,
+  `dateTime`, `trainerId`), one-for-one with
+  `backend/training/interface/training-presenter.ts`'s `TrainingView` and
+  `create-training.ts`'s request shape.
+- **`application/trainings.store.ts`** — `TrainingsStore`: identical shape
+  to `QuestionsStore` — a `trainings` signal, `load()`, and `create()`
+  (reloads the list after saving).
+- **`infrastructure/http-training-gateway.ts`** — `HttpTrainingGateway`,
+  `HttpClient` adapter, `withCredentials: true`, one-for-one with
+  `trainings.controller.ts`'s routes.
+- **`interface/training-form.ts`** — the researcher's scheduling form: a
+  `p-inputtext` for `title` (required) and a `pTextarea` for the optional
+  `description`, a PrimeNG `p-datepicker` (`[showTime]="true"`, 24-hour) for
+  `dateTime`, and a `p-select` for `trainerId` populated from a required
+  `trainerOptions` input rather than fetched by this component itself —
+  disabled with a "No trainers registered yet" placeholder when that list is
+  empty.
+- **`interface/training-list.ts`** — read-only `p-table`: `title`,
+  `dateTime` (formatted via `DatePipe`'s `medium` format) and the trainer's
+  name, resolved by looking up `trainerId` against the same
+  `trainerOptions` input rather than a second network call.
+
+`training/` also carries the `Trainer` slice (mirrors
+[`docs/domain-model.md`](domain-model.md)'s "Trainer — implemented slice"):
+
+- **`application/ports.ts`** (Trainer additions) — `TrainerGateway`
+  (abstract class): `create`, `list` — same two methods `QuestionGateway`
+  has. Also defines `TrainerView` (`id`, `name`) and `CreateTrainerRequest`
+  (`name`), one-for-one with `backend/training/interface/trainer-presenter.ts`'s
+  `TrainerView` and `create-trainer.ts`'s request shape.
+- **`application/trainers.store.ts`** — `TrainersStore`: identical shape to
+  `QuestionsStore` — a `trainers` signal, `load()`, and `create()` (reloads
+  the list after saving).
+- **`infrastructure/http-trainer-gateway.ts`** — `HttpTrainerGateway`,
+  `HttpClient` adapter, `withCredentials: true`, one-for-one with
+  `trainers.controller.ts`'s routes.
+- **`interface/trainer-form.ts`** — the researcher's authoring form: a
+  single required `p-inputtext` for `name` and a submit button, with the
+  same status-message handling `training-form.ts` uses, just for one field.
+- **`interface/trainer-list.ts`** — read-only `p-table` of `name`, mirrors
+  `question-list.ts`.
+
+`frontend/src/app/shell/admin/trainings.page.ts` composes this slice
+alongside `Training`'s own: it injects `TrainersStore` (dropping the
+`AuthGateway` injection it previously used to filter `listUsers()` down to
+`ROLES.TRAINER`), calls `store.load()` in `ngOnInit`, and derives
+`trainerOptions` as `computed(() => this.trainersStore.trainers().map(t =>
+({label: t.name, value: t.id})))`. `trainings.page.html` adds
+`<app-trainer-form />` and `<app-trainer-list [trainers]="trainersStore.trainers()" />`
+above the existing training form/list — same page, no new route, same
+"shell composes, contexts don't" pattern the rest of this page already
+follows.
+
+`training/` also carries the `Enrollment & blackout window` slice
+(mirrors [`docs/domain-model.md`](domain-model.md)'s "Enrollment & blackout
+window — implemented slice"):
+
+- **`application/ports.ts`** (Enrollment additions) — `EnrollmentGateway`
+  (abstract class): `enroll(trainingId)`, `me()`. Also defines
+  `BlackoutWindowView` (`dayOfWeek`, `startTime`, `endTime`) and
+  `EnrollmentView` (`trainingIds`, `blackoutWindows`), one-for-one with
+  `enrollment.controller.ts`'s `GET /enrollments/me` response.
+- **`application/enrollment.store.ts`** — `EnrollmentStore`: `trainingIds`/
+  `blackoutWindows` signals, `load()`, and `enroll()` (reloads after).
+- **`infrastructure/http-enrollment-gateway.ts`** — `HttpEnrollmentGateway`,
+  `HttpClient` adapter, `withCredentials: true`.
+- **`shell/client/register.page.ts`** — the Participant's own enrollment
+  page (not under `training/interface/` since it composes two contexts'
+  worth of concerns — Trainings to browse and Enrollment to act on — the
+  same "shell composes, contexts don't" split `admin-dashboard.page.ts`
+  already established): lists open Trainings via `TrainingsStore`, tags
+  rows already enrolled via `EnrollmentStore`, and enrolls on click.
+
+`training/` also carries the `Survey` slice (mirrors
+[`docs/domain-model.md`](domain-model.md)'s "Survey — implemented slice"):
+
+- **`application/ports.ts`** (Survey additions) — `SurveyGateway` (abstract
+  class): `create`, `list` — same two methods `TrainingGateway` has. Also
+  defines `SurveyQuestionView` (`questionId`, `parameterValues`),
+  `ResourceView` (`id`, `url`), `SurveyView` (`id`, `trainingId`, `sendDate`
+  as an ISO string, `questions`, `resources`), and `CreateSurveyRequest`
+  (`trainingId`, `sendDate`, `questionAssignments`, `resources`), one-for-one
+  with `backend/training/interface/survey-presenter.ts`'s `SurveyView` and
+  `create-survey.ts`'s request shape.
+- **`application/surveys.store.ts`** — `SurveysStore`: identical shape to
+  `TrainingsStore` — a `surveys` signal, `load()`, and `create()`.
+- **`infrastructure/http-survey-gateway.ts`** — `HttpSurveyGateway`,
+  `HttpClient` adapter, `withCredentials: true`.
+- **`interface/survey-form.ts`** — the researcher's authoring form:
+  `trainingOptions`/`questionOptions` inputs (composed one layer up by
+  `shell/admin/surveys.page.ts`, same pattern `training-form.ts`'s
+  `trainerOptions` uses), a `p-datepicker` for `sendDate`, a question picker
+  that reveals a per-parameter text input for each of the selected
+  Question's declared parameters before it's added to the assignment list,
+  and an add/remove resource-URL list (mirrors `question-form.ts`'s
+  add/remove scale-point/option editors).
+- **`interface/survey-list.ts`** — read-only `p-table`: `sendDate`, the
+  resolved training label (looked up in `trainingOptions`, same pattern
+  `training-list.ts` uses for `trainerId`), question/resource counts, and a
+  "View results" link per row to `/admin/surveys/:id/results`.
+
+`training/` also carries the `Survey Response` slice (mirrors
+[`docs/domain-model.md`](domain-model.md)'s "Survey Response — implemented
+slice"):
+
+- **`application/ports.ts`** (Survey Response additions) —
+  `SurveyResponseGateway` (abstract class): `open(surveyId)`,
+  `recordResourceAccess(surveyResponseId, resourceId)`,
+  `submit(surveyResponseId, answers)`, `get(surveyResponseId)`,
+  `listForSurvey(surveyId)`. Also defines `AnswerView` (`questionId`,
+  `value: string | string[]`), `ResourceAccessView` (`resourceId`,
+  `accessedTime`), and `SurveyResponseView`, one-for-one with
+  `survey-response-presenter.ts`'s `SurveyResponseView`.
+- **`application/survey-response.store.ts`** — `SurveyResponseStore`: a
+  single `current: Signal<SurveyResponseView | null>` (the one response the
+  Participant is actively filling out) rather than a list, since
+  `survey-fill.ts` only ever cares about one response at a time; `open()`,
+  `recordResourceAccess()`, and `submit()` each update `current` from the
+  gateway's response.
+- **`infrastructure/http-survey-response-gateway.ts`** —
+  `HttpSurveyResponseGateway`, `HttpClient` adapter, `withCredentials: true`.
+- **`interface/survey-fill.ts`** — the Participant's fill-out form: opens a
+  response for `surveyId` on init, resolves each of the Survey's
+  `SurveyQuestion`s against `QuestionsStore` to get the underlying
+  `Question`, and — unlike `question-form.ts`'s client-side `<name>`-regex
+  *preview* (there's no real `Question` instance to call the getter on at
+  authoring time) — calls `domain/training`'s actual
+  `Question.create(...).renderPrompt(parameterValues)` here, since a real
+  `Question` and real bound `parameterValues` both exist by the time a
+  Participant is answering. Renders a `FreeInput`/`Likert`/`Choice` input per
+  question (reusing the same `AnswerFormat`-driven branching
+  `question-form.ts` established for authoring, now for answering), resource
+  links that call `recordResourceAccess()` on click, and a Submit button
+  disabled once the response's `status` is already `Finished`.
+- **`interface/survey-results.ts`** — the researcher's read-only view: a
+  `p-table` of a survey's responses (participant `userId`, opened/finished
+  time, status) with a per-row expand toggle revealing the raw `answers`
+  array — intentionally no charting or aggregation.
+
 ## Routing
 
 ```
@@ -424,20 +636,56 @@ app.routes.ts:
 shell/client/client.routes.ts (CLIENT_ROUTES):
   'login'             -> ClientLoginPage                                    (no guard)
   ''                  -> ClientHomePage             [sessionGuard('/login')]
+  'register'          -> RegisterPage               [sessionGuard('/login')]
+  'survey/:surveyId'  -> SurveyPage                 [sessionGuard('/login')]
   'notification/:id'  -> NotificationDetailPage     [sessionGuard('/login')]
 
 shell/admin/admin.routes.ts (ADMIN_ROUTES):
-  'login'     -> AdminLoginPage                                             (no guard)
-  ''          -> AdminDashboardPage   [sessionGuard('/admin/login'),
-                                        rolesGuard([Researcher, Trainer], '/admin/login')]
-  'questions' -> QuestionsPage        [sessionGuard('/admin/login'),
-                                        rolesGuard([Researcher], '/admin/login')]
+  'login' -> AdminLoginPage                                                 (no guard)
+  ''      -> AdminShellPage  [sessionGuard('/admin/login'),
+                               rolesGuard([Researcher, Trainer], '/admin/login')]
+    children:
+      ''          -> AdminDashboardPage
+      'questions' -> QuestionsPage        [rolesGuard([Researcher], '/admin/login')]
+      'trainings' -> TrainingsPage        [rolesGuard([Researcher], '/admin/login')]
+      'surveys'   -> SurveysPage          [rolesGuard([Researcher], '/admin/login')]
+      'surveys/:id/results' -> SurveyResultsPage  [rolesGuard([Researcher], '/admin/login')]
 ```
+
+`sessionGuard`/the shared `rolesGuard([Researcher, Trainer])` sit once on the
+`''` parent (`AdminShellPage`) rather than repeated on every child — Angular's
+router runs a route's `canActivate` on every navigation that matches that
+segment, including into its children, so the parent guard still protects each
+child on its own. Researcher-only children layer their own narrower
+`rolesGuard([Researcher])` on top.
 
 `questions` is Researcher-only (unlike the shared `''` dashboard route) —
 matches `domain-model.md`'s "Question — implemented slice" backend gating
 (`@Roles('Researcher')` on `questions.controller.ts`), since Question
 authoring isn't a Trainer capability.
+
+`trainings` is likewise Researcher-only, matching `domain-model.md`'s
+"Training — implemented slice" backend gating (`@Roles('Researcher')` on
+`trainings.controller.ts`) — scheduling a Training isn't a Trainer
+capability either, even though a Trainer may be the one referenced by a
+given Training's `trainerId`. `trainings.controller.ts`'s `list`/`byId`
+routes dropped their class-level `@Roles('Researcher')` alongside the
+Enrollment slice, though — a Participant needs to browse Trainings from
+`/register` to enroll in one, so only `create` stays Researcher-gated.
+
+`surveys` and `surveys/:id/results` are likewise Researcher-only, matching
+`domain-model.md`'s "Survey — implemented slice" backend gating
+(`@Roles('Researcher')` on `surveys.controller.ts`'s `create` and
+`survey-responses.controller.ts`'s `GET /surveys/:id/responses`).
+
+`register` and `survey/:surveyId` carry no `rolesGuard` — every session
+reaching the client area is already a Participant by construction (the
+client login form only ever registers `ROLES.PARTICIPANT`, per
+`client-login.page.ts`), so gating write *actions* server-side
+(`@Roles('Participant')` on `enrollment.controller.ts`'s `POST /enrollments`
+and `survey-responses.controller.ts`'s `open`/`resource-access`/`submit`) is
+what actually matters, the same posture `trainings`/`surveys`' read routes
+take on the admin side.
 
 An unauthenticated visit to a guarded route redirects to that area's own
 `login` route; a logged-in Participant hitting `/admin` fails `rolesGuard`

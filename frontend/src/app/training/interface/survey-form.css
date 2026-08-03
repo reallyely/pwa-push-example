@@ -1,0 +1,54 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.list-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.list-row input {
+  flex: 1;
+}
+
+.assignment-summary {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.parameter-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--p-content-border-color);
+}
+
+.status {
+  display: block;
+  margin-top: 0.5rem;
+}

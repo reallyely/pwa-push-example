@@ -2,5 +2,7 @@
   <p>Logged in as {{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }}).</p>
   <p-button type="button" label="Log out" severity="secondary" (onClick)="logout()" />
 
+  <p><a routerLink="/register">Register for a Training &rarr;</a></p>
+
   <app-enable-notifications-card />
 </div>

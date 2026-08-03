@@ -1,0 +1,30 @@
+<div class="page">
+  <a routerLink="/">&larr; Back to home</a>
+
+  <p>Register for a Training's Survey.</p>
+  <p-table [value]="trainingsStore.trainings()">
+    <ng-template #header>
+      <tr>
+        <th>Date &amp; time</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-training>
+      <tr>
+        <td>{{ training.dateTime | date: 'medium' }}</td>
+        <td>
+          @if (isEnrolled(training.id)) {
+            <p-tag value="Enrolled" severity="success" />
+          } @else {
+            <p-button type="button" label="Enroll" size="small" (onClick)="enroll(training.id)" />
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="2">No trainings scheduled yet</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

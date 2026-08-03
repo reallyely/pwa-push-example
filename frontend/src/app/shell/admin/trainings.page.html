@@ -1,0 +1,10 @@
+<div class="page">
+  <p>Schedule a Training session with a Trainer.</p>
+  <app-trainer-form />
+
+  <app-trainer-list [trainers]="trainersStore.trainers()" />
+
+  <app-training-form [trainerOptions]="trainerOptions()" />
+
+  <app-training-list [trainerOptions]="trainerOptions()" [trainings]="store.trainings()" />
+</div>

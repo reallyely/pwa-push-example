@@ -1,0 +1,22 @@
+<h2>Trainings</h2>
+<p-table [value]="trainings()">
+  <ng-template #header>
+    <tr>
+      <th>Title</th>
+      <th>Date &amp; time</th>
+      <th>Trainer</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-t>
+    <tr>
+      <td>{{ t.title }}</td>
+      <td>{{ t.dateTime | date: 'medium' }}</td>
+      <td>{{ trainerLabel(t) }}</td>
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="3">No trainings scheduled yet</td>
+    </tr>
+  </ng-template>
+</p-table>

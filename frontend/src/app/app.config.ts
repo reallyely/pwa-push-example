@@ -10,13 +10,22 @@ import { AuthStore } from './identity/application/auth.store';
 import { HttpAuthGateway } from './identity/infrastructure/http-auth-gateway';
 import { RecipientGateway, NotificationGateway, PushSubscriptionPort } from './notification-delivery/application/ports';
 import { EnablePushNotifications } from './notification-delivery/application/enable-push-notifications';
-import { AdminNotificationsStore } from './notification-delivery/application/admin-notifications.store';
 import { HttpRecipientGateway } from './notification-delivery/infrastructure/http-recipient-gateway';
 import { HttpNotificationGateway } from './notification-delivery/infrastructure/http-notification-gateway';
 import { BrowserPushGateway } from './notification-delivery/infrastructure/browser-push-gateway';
-import { QuestionGateway } from './training/application/ports';
+import { QuestionGateway, TrainerGateway, TrainingGateway, EnrollmentGateway, SurveyGateway, SurveyResponseGateway } from './training/application/ports';
 import { QuestionsStore } from './training/application/questions.store';
+import { TrainersStore } from './training/application/trainers.store';
+import { TrainingsStore } from './training/application/trainings.store';
+import { EnrollmentStore } from './training/application/enrollment.store';
+import { SurveysStore } from './training/application/surveys.store';
+import { SurveyResponseStore } from './training/application/survey-response.store';
 import { HttpQuestionGateway } from './training/infrastructure/http-question-gateway';
+import { HttpTrainerGateway } from './training/infrastructure/http-trainer-gateway';
+import { HttpTrainingGateway } from './training/infrastructure/http-training-gateway';
+import { HttpEnrollmentGateway } from './training/infrastructure/http-enrollment-gateway';
+import { HttpSurveyGateway } from './training/infrastructure/http-survey-gateway';
+import { HttpSurveyResponseGateway } from './training/infrastructure/http-survey-response-gateway';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -39,15 +48,41 @@ export const appConfig: ApplicationConfig = {
       provide: EnablePushNotifications,
       useFactory: () => new EnablePushNotifications(inject(PushSubscriptionPort), inject(RecipientGateway)),
     },
-    {
-      provide: AdminNotificationsStore,
-      useFactory: () => new AdminNotificationsStore(inject(NotificationGateway)),
-    },
 
     { provide: QuestionGateway, useClass: HttpQuestionGateway },
     {
       provide: QuestionsStore,
       useFactory: () => new QuestionsStore(inject(QuestionGateway)),
+    },
+
+    { provide: TrainerGateway, useClass: HttpTrainerGateway },
+    {
+      provide: TrainersStore,
+      useFactory: () => new TrainersStore(inject(TrainerGateway)),
+    },
+
+    { provide: TrainingGateway, useClass: HttpTrainingGateway },
+    {
+      provide: TrainingsStore,
+      useFactory: () => new TrainingsStore(inject(TrainingGateway)),
+    },
+
+    { provide: EnrollmentGateway, useClass: HttpEnrollmentGateway },
+    {
+      provide: EnrollmentStore,
+      useFactory: () => new EnrollmentStore(inject(EnrollmentGateway)),
+    },
+
+    { provide: SurveyGateway, useClass: HttpSurveyGateway },
+    {
+      provide: SurveysStore,
+      useFactory: () => new SurveysStore(inject(SurveyGateway)),
+    },
+
+    { provide: SurveyResponseGateway, useClass: HttpSurveyResponseGateway },
+    {
+      provide: SurveyResponseStore,
+      useFactory: () => new SurveyResponseStore(inject(SurveyResponseGateway)),
     },
   ],
 };

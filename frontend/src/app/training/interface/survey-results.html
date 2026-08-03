@@ -1,0 +1,49 @@
+<h2>Responses</h2>
+<p-table [value]="responses()">
+  <ng-template #header>
+    <tr>
+      <th>User</th>
+      <th>Opened</th>
+      <th>Finished</th>
+      <th>State</th>
+      <th></th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-r>
+    <tr>
+      <td>{{ r.userId }}</td>
+      <td>{{ r.openedTime | date: 'medium' }}</td>
+      <td>{{ r.finishedTime ? (r.finishedTime | date: 'medium') : '—' }}</td>
+      <td><p-tag [value]="r.status" [severity]="r.status === 'Finished' ? 'success' : 'info'" /></td>
+      <td>
+        <p-button
+          type="button"
+          [label]="isExpanded(r.id) ? 'Hide answers' : 'Show answers'"
+          size="small"
+          severity="secondary"
+          (onClick)="toggle(r.id)"
+        />
+      </td>
+    </tr>
+    @if (isExpanded(r.id)) {
+      <tr>
+        <td colspan="5">
+          @if (r.answers.length > 0) {
+            <ul>
+              @for (answer of r.answers; track answer.questionId) {
+                <li><strong>{{ answer.questionId }}</strong>: {{ formatValue(answer.value) }}</li>
+              }
+            </ul>
+          } @else {
+            <p>No answers yet.</p>
+          }
+        </td>
+      </tr>
+    }
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td colspan="5">No responses yet</td>
+    </tr>
+  </ng-template>
+</p-table>

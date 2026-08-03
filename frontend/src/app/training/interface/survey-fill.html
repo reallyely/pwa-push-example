@@ -1,0 +1,80 @@
+@if (survey() && response()) {
+  <h2>Survey — {{ survey()!.sendDate | date: 'medium' }}</h2>
+
+  @if (isFinished()) {
+    <p-message severity="success" styleClass="status">You already submitted this survey.</p-message>
+  }
+
+  @for (surveyQuestion of survey()!.questions; track surveyQuestion.questionId) {
+    @if (questionFor(surveyQuestion.questionId); as question) {
+      <fieldset>
+        <legend>{{ renderedPrompt(surveyQuestion) }}</legend>
+
+        @switch (question.answerFormat.kind) {
+          @case ('FreeInput') {
+            <textarea
+              pTextarea
+              rows="3"
+              [name]="'answer-' + surveyQuestion.questionId"
+              [disabled]="isFinished()"
+              [ngModel]="answerValue(surveyQuestion.questionId)"
+              (ngModelChange)="setAnswer(surveyQuestion.questionId, $event)"
+            ></textarea>
+          }
+          @case ('Likert') {
+            <p-select
+              [options]="likertScale(question)"
+              [name]="'answer-' + surveyQuestion.questionId"
+              [disabled]="isFinished()"
+              [ngModel]="answerValue(surveyQuestion.questionId)"
+              (ngModelChange)="setAnswer(surveyQuestion.questionId, $event)"
+            />
+          }
+          @case ('Choice') {
+            @if (allowsMultiple(question)) {
+              @for (option of choiceOptions(question); track option) {
+                <label class="checkbox-label">
+                  <p-checkbox
+                    [binary]="true"
+                    [name]="'answer-' + surveyQuestion.questionId + '-' + option"
+                    [disabled]="isFinished()"
+                    [ngModel]="isOptionSelected(surveyQuestion.questionId, option)"
+                    (ngModelChange)="toggleChoiceOption(surveyQuestion.questionId, option, $event)"
+                  />
+                  {{ option }}
+                </label>
+              }
+            } @else {
+              <p-select
+                [options]="choiceOptions(question)"
+                [name]="'answer-' + surveyQuestion.questionId"
+                [disabled]="isFinished()"
+                [ngModel]="answerValue(surveyQuestion.questionId)"
+                (ngModelChange)="setAnswer(surveyQuestion.questionId, $event)"
+              />
+            }
+          }
+        }
+      </fieldset>
+    }
+  }
+
+  @if (survey()!.resources.length > 0) {
+    <section>
+      <h3>Resources</h3>
+      <ul>
+        @for (resource of survey()!.resources; track resource.id) {
+          <li><a [href]="resource.url" target="_blank" rel="noopener" (click)="accessResource(resource.id)">{{ resource.url }}</a></li>
+        }
+      </ul>
+    </section>
+  }
+
+  <p-button type="button" label="Submit" [disabled]="submitting() || isFinished()" [loading]="submitting()" (onClick)="submit()" />
+
+  @if (status(); as msg) {
+    <p-message [severity]="statusSeverity()" styleClass="status">{{ msg }}</p-message>
+  }
+} @else {
+  <p>Loading...</p>
+}

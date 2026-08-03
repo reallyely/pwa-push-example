@@ -1,0 +1,14 @@
+<nav aria-label="Admin navigation">
+  <p-menubar [model]="navItems()">
+    <ng-template #end>
+      <div class="admin-shell__account">
+        <span>{{ authStore.currentUser()?.email }} ({{ authStore.currentUser()?.role }})</span>
+        <p-button type="button" label="Log out" severity="secondary" size="small" (onClick)="logout()" />
+      </div>
+    </ng-template>
+  </p-menubar>
+</nav>
+
+<main class="admin-shell__content">
+  <router-outlet />
+</main>

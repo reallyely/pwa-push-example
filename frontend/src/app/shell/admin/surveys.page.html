@@ -1,0 +1,6 @@
+<div class="page">
+  <p>Schedule a Survey for a Training.</p>
+  <app-survey-form [trainingOptions]="trainingOptions()" [questionOptions]="questionsStore.questions()" />
+
+  <app-survey-list [trainingOptions]="trainingOptions()" [surveys]="store.surveys()" />
+</div>

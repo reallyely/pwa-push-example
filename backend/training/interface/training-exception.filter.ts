@@ -5,6 +5,9 @@ import type { TrainingError } from '#training/application/errors.js';
 const ERROR_STATUS_BY_CODE: Record<string, number> = {
   NOT_FOUND: 404,
   INVALID_INPUT: 400,
+  MISSING_PARAMETER_VALUES: 400,
+  UNEXPECTED_PARAMETER_VALUES: 400,
+  ALREADY_FINISHED: 409,
 };
 
 @Catch()

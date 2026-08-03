@@ -1,0 +1,100 @@
+<form (ngSubmit)="submit()" novalidate>
+  <label for="trainingId">Training</label>
+  <p-select
+    inputId="trainingId"
+    [options]="trainingOptions()"
+    optionLabel="label"
+    optionValue="value"
+    [placeholder]="trainingOptions().length === 0 ? 'No trainings scheduled yet' : 'Select a training'"
+    [disabled]="trainingOptions().length === 0"
+    [ngModel]="trainingId()"
+    (ngModelChange)="trainingId.set($event)"
+    name="trainingId"
+    required
+  />
+
+  <label for="sendDate">Send date</label>
+  <p-datepicker
+    inputId="sendDate"
+    name="sendDate"
+    [ngModel]="sendDate()"
+    (ngModelChange)="sendDate.set($event)"
+    [showTime]="true"
+    hourFormat="24"
+    [showIcon]="true"
+    required
+  />
+
+  <fieldset>
+    <legend>Questions</legend>
+
+    @if (assignments().length > 0) {
+      @for (assignment of assignments(); track $index) {
+        <div class="list-row">
+          <span class="assignment-summary">
+            {{ questionLabel(assignment.questionId) }}
+            @if (parameterValuesSummary(assignment); as summary) {
+              &mdash; {{ summary }}
+            }
+          </span>
+          <p-button type="button" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="removeQuestion($index)" />
+        </div>
+      }
+    }
+
+    <p-select
+      [options]="questionPickerOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [placeholder]="questionOptions().length === 0 ? 'No questions in the bank yet' : 'Select a question to add'"
+      [disabled]="questionOptions().length === 0"
+      [ngModel]="pendingQuestionId()"
+      (ngModelChange)="selectPendingQuestion($event)"
+      name="pendingQuestionId"
+    />
+
+    @if (pendingQuestion(); as question) {
+      @if (question.parameterNames.length > 0) {
+        <div class="parameter-inputs">
+          @for (name of question.parameterNames; track name) {
+            <label [for]="'param-' + name">{{ name }}</label>
+            <input
+              pInputText
+              type="text"
+              [id]="'param-' + name"
+              [name]="'param-' + name"
+              [ngModel]="pendingParameterValues()[name] ?? ''"
+              (ngModelChange)="updatePendingParameterValue(name, $event)"
+            />
+          }
+        </div>
+      }
+    }
+
+    <p-button type="button" label="Add question" severity="secondary" [disabled]="!pendingQuestionId()" (onClick)="addQuestion()" />
+  </fieldset>
+
+  <fieldset>
+    <legend>Resources</legend>
+    @for (url of resourceUrls(); track $index) {
+      <div class="list-row">
+        <input
+          pInputText
+          type="text"
+          [name]="'resourceUrl' + $index"
+          [ngModel]="url"
+          (ngModelChange)="updateResourceUrl($index, $event)"
+          placeholder="https://example.com/handout.pdf"
+        />
+        <p-button type="button" icon="pi pi-times" severity="secondary" [text]="true" (onClick)="removeResourceUrl($index)" />
+      </div>
+    }
+    <p-button type="button" label="Add resource" severity="secondary" (onClick)="addResourceUrl()" />
+  </fieldset>
+
+  <p-button type="submit" label="Create Survey" [disabled]="submitting()" [loading]="submitting()" />
+
+  @if (status(); as msg) {
+    <p-message [severity]="statusSeverity()" styleClass="status">{{ msg }}</p-message>
+  }
+</form>

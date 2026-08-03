@@ -1,0 +1,9 @@
+<div class="page">
+  <a routerLink="/admin/surveys">&larr; Back to surveys</a>
+
+  @if (survey(); as s) {
+    <p>Results for the survey sent {{ s.sendDate | date: 'medium' }}.</p>
+  }
+
+  <app-survey-results [responses]="store.responses()" />
+</div>

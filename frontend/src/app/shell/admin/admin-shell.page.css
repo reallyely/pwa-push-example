@@ -1,0 +1,11 @@
+.admin-shell__account {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-inline: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.admin-shell__content {
+  padding: 1.5rem;
+}

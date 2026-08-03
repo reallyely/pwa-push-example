@@ -1,0 +1,17 @@
+<form (ngSubmit)="submit()" novalidate>
+  <label for="name">Name</label>
+  <input
+    pInputText
+    id="name"
+    name="name"
+    [ngModel]="name()"
+    (ngModelChange)="name.set($event)"
+    required
+  />
+
+  <p-button type="submit" label="Create Trainer" [disabled]="submitting()" [loading]="submitting()" />
+
+  @if (status(); as msg) {
+    <p-message [severity]="statusSeverity()" styleClass="status">{{ msg }}</p-message>
+  }
+</form>
